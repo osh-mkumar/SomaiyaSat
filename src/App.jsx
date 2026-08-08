@@ -11,11 +11,7 @@ import OrbitPanel from "./components/OrbitPanel";
 // CONSTANTS & INITIAL DATA
 // ==========================================
 
-const INITIAL_SATELLITES = [
-  { id: 1, name: "SomaiyaSat-1", battery: 82, signal: 91, altitude: 505, communication: "Online", status: "Nominal" },
-  { id: 2, name: "SomaiyaSat-2", battery: 48, signal: 63, altitude: 496, communication: "Online", status: "Nominal" },
-  { id: 3, name: "SomaiyaSat-3", battery: 18, signal: 34, altitude: 462, communication: "Offline", status: "Critical" },
-];
+
 
 const TELEMETRY_METRICS = {
   missionId: "KJS-SRS-01",
@@ -32,20 +28,7 @@ const PAYLOAD_OPTIONS = ["TT&C", "SSTV", "Codec2", "M17"];
 // HELPER FUNCTIONS
 // ==========================================
 
-const calculateStatus = (battery, signal, altitude, communication) => {
-  if (battery < 20 || signal < 40 || communication === "Offline") return "Critical";
-  if (battery < 50 || signal < 70 || altitude < 490) return "Warning";
-  return "Nominal";
-};
 
-const getStatusEmoji = (status) => {
-  switch (status) {
-    case "Nominal": return "🟢";
-    case "Warning": return "🟡";
-    case "Critical": return "🔴";
-    default: return "";
-  }
-};
 
 // ==========================================
 // SUB-COMPONENTS
@@ -134,36 +117,6 @@ const PayloadsTab = () => (
   </section>
 );
 
-const TelemetryTab = ({ satellites, lastUpdated }) => {
-  const criticalCount = useMemo(() => {
-    return satellites.filter((sat) => sat.status === "Critical").length;
-  }, [satellites]);
-
-  return (
-    <section className="sci-section">
-      <h3>05. Satellite Telemetry Dashboard</h3>
-      <p className="update-time">Last Updated: {lastUpdated.toLocaleTimeString()}</p>
-      <div className="summary-card">
-        <h3>Mission Status Summary</h3>
-        <p><strong>Total Satellites:</strong> {satellites.length}</p>
-        <p><strong>Critical Satellites:</strong> {criticalCount}</p>
-      </div>
-      <div className="satellite-grid">
-        {satellites.map((sat) => (
-          <div key={sat.id} className={`sat-card ${sat.status.toLowerCase()}`}>
-            <h3>{sat.name}</h3>
-            <p><strong>Battery:</strong> {sat.battery}%</p>
-            <p><strong>Signal:</strong> {sat.signal}%</p>
-            <p><strong>Orbit:</strong> {sat.altitude} km</p>
-            <p><strong>Communication:</strong> {sat.communication}</p>
-            <h4>{getStatusEmoji(sat.status)} {sat.status}</h4>
-            {sat.status === "Critical" && <div className="critical-alert">Immediate Mission Attention Required</div>}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-};
 
 // ==========================================
 // MAIN COMPONENT
@@ -171,24 +124,6 @@ const TelemetryTab = ({ satellites, lastUpdated }) => {
 
 function App() {
   const [activeTab, setActiveTab] = useState("mission"); // Default to the new dashboard as per reqs
-  const [satellites, setSatellites] = useState(INITIAL_SATELLITES);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSatellites((prev) =>
-        prev.map((sat) => {
-          const battery = Math.max(0, Math.min(100, sat.battery + Math.floor(Math.random() * 11) - 5));
-          const signal = Math.max(0, Math.min(100, sat.signal + Math.floor(Math.random() * 11) - 5));
-          const altitude = sat.altitude + Math.floor(Math.random() * 5) - 2;
-          const status = calculateStatus(battery, signal, altitude, sat.communication);
-          return { ...sat, battery, signal, altitude, status };
-        })
-      );
-      setLastUpdated(new Date());
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="app-container">
@@ -204,7 +139,7 @@ function App() {
                 {activeTab === "overview" && <OverviewTab />}
                 {activeTab === "ai" && <AiRoutingTab />}
                 {activeTab === "payloads" && <PayloadsTab />}
-                {activeTab === "telemetry" && <TelemetryTab satellites={satellites} lastUpdated={lastUpdated} />}
+                {activeTab === "telemetry" && <TelemetryPanel />}
               </div>
             </div>
           )}
