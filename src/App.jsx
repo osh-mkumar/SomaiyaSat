@@ -6,6 +6,8 @@ import Sidebar from "./components/Sidebar";
 import RFPanel from "./components/RFPanel";
 import TelemetryPanel from "./components/TelemetryPanel";
 import OrbitPanel from "./components/OrbitPanel";
+import PayloadsPanel from "./components/PayloadsPanel";
+import ExternalDataPanel from "./components/ExternalDataPanel";
 
 // ==========================================
 // CONSTANTS & INITIAL DATA
@@ -100,22 +102,7 @@ ELSE
   </section>
 );
 
-const PayloadsTab = () => (
-  <section className="sci-section">
-    <h3>03. RF Payload Manager</h3>
-    <p>
-      The communication subsystem dynamically allocates bandwidth between
-      multiple amateur radio payloads based on mission requirements and
-      available power.
-    </p>
-    <div className="spec-table">
-      <div className="table-row"><span className="col-title">TT&C</span><span>Telemetry, Tracking & Command</span></div>
-      <div className="table-row"><span className="col-title">SSTV</span><span>Slow Scan Television Image Transmission</span></div>
-      <div className="table-row"><span className="col-title">Codec2</span><span>Low Bitrate Voice Compression</span></div>
-      <div className="table-row"><span className="col-title">M17</span><span>Digital Voice & Data Protocol</span></div>
-    </div>
-  </section>
-);
+// PayloadsTab removed as it is now in its own component
 
 
 // ==========================================
@@ -124,10 +111,11 @@ const PayloadsTab = () => (
 
 function App() {
   const [activeTab, setActiveTab] = useState("mission"); // Default to the new dashboard as per reqs
+  const [role, setRole] = useState("Admin");
 
   return (
     <div className="app-container">
-      <TopBar />
+      <TopBar role={role} setRole={setRole} />
       <div className="main-layout">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         <main className="content-area">
@@ -138,16 +126,17 @@ function App() {
               <div className="sci-content">
                 {activeTab === "overview" && <OverviewTab />}
                 {activeTab === "ai" && <AiRoutingTab />}
-                {activeTab === "payloads" && <PayloadsTab />}
-                {activeTab === "telemetry" && <TelemetryPanel />}
+                {activeTab === "payloads" && <PayloadsPanel role={role} />}
+                {activeTab === "telemetry" && <TelemetryPanel role={role} />}
+                {activeTab === "external" && <ExternalDataPanel />}
               </div>
             </div>
           )}
 
           {activeTab === 'mission' && (
             <div className="mission-dashboard-grid">
-              <RFPanel />
-              <TelemetryPanel />
+              <RFPanel role={role} />
+              <TelemetryPanel role={role} />
               <OrbitPanel />
             </div>
           )}

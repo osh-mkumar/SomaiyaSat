@@ -1,0 +1,68 @@
+{
+  "satellites": [
+    {
+      "id": "SS-001",
+      "name": "SomaiyaSat-1",
+      "status": "Nominal",
+      "battery": 89,
+      "signal": 94,
+      "temp": 24.8,
+      "altitude": 504,
+      "communication": "Online"
+    },
+    {
+      "id": "SS-002",
+      "name": "SomaiyaSat-2",
+      "status": "Warning",
+      "battery": 46,
+      "signal": 64,
+      "temp": 31.2,
+      "altitude": 500,
+      "communication": "Online"
+    },
+    {
+      "id": "SS-003",
+      "name": "SomaiyaSat-3",
+      "status": "Critical",
+      "battery": 25,
+      "signal": 38,
+      "temp": 42.1,
+      "altitude": 461,
+      "communication": "Offline"
+    }
+  ],
+  "payloads": [
+    {
+      "id": "P001",
+      "name": "Housekeeping Telemetry",
+      "type": "TT&C",
+      "priority": "Critical",
+      "size": "12 KB",
+      "status": "Queued"
+    },
+    {
+      "id": "P002",
+      "name": "Wide-Angle Earth Image",
+      "type": "SSTV",
+      "priority": "Normal",
+      "size": "45 KB",
+      "status": "Transmitting"
+    },
+    {
+      "id": "P003",
+      "name": "Ham Radio Broadcast",
+      "type": "Codec2",
+      "priority": "Low",
+      "size": "8 KB",
+      "status": "Suspended"
+    },
+    {
+      "id": "P004",
+      "name": "Experimental Data",
+      "type": "M17",
+      "priority": "Normal",
+      "size": "25 KB",
+      "status": "Queued"
+    }
+  ]
+}

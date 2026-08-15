@@ -31,12 +31,12 @@ const INITIAL_DATA = {
     agreeTerms: true
 };
 
-const MissionForm = () => {
+const MissionForm = ({ role }) => {
     const [isEditing, setIsEditing] = useState(false);
-    
+
     // Maintain originalData for the read-only view and for resetting
     const [originalData, setOriginalData] = useState(INITIAL_DATA);
-    
+
     // Maintain formData for the editable view
     const [formData, setFormData] = useState(INITIAL_DATA);
 
@@ -81,11 +81,11 @@ const MissionForm = () => {
 
         setErrors(newErrors);
 
-        const allFilled = formData.missionName && formData.missionId && formData.operatorName && 
-                          formData.operatorEmail && formData.satelliteNickname && formData.communicationFrequency && 
-                          formData.country && formData.emergencyContact && formData.username && formData.password && 
-                          formData.confirmPassword && formData.agreeTerms;
-                          
+        const allFilled = formData.missionName && formData.missionId && formData.operatorName &&
+            formData.operatorEmail && formData.satelliteNickname && formData.communicationFrequency &&
+            formData.country && formData.emergencyContact && formData.username && formData.password &&
+            formData.confirmPassword && formData.agreeTerms;
+
         const hasNoErrors = Object.keys(newErrors).length === 0;
 
         setIsFormValid(!!(allFilled && hasNoErrors));
@@ -130,7 +130,7 @@ const MissionForm = () => {
                 <div className="summary-row">
                     <span className="summary-label">Operator Email:</span> <span className="summary-val">{originalData.operatorEmail || 'N/A'}</span>
                 </div>
-                
+
                 <div className="form-section-divider">Hardware & RF Link</div>
                 <div className="summary-row">
                     <span className="summary-label">Satellite Nickname:</span> <span className="summary-val">{originalData.satelliteNickname || 'N/A'}</span>
@@ -162,8 +162,12 @@ const MissionForm = () => {
                     <span className="summary-label">System Username:</span> <span className="summary-val">{originalData.username || 'N/A'}</span>
                 </div>
 
-                <div className="form-actions" style={{marginTop: "20px"}}>
-                    <button type="button" className="btn-primary" onClick={() => setIsEditing(true)}>Edit Configuration</button>
+                <div className="form-actions" style={{ marginTop: "20px" }}>
+                    {role === "Admin" ? (
+                        <button type="button" className="btn-primary" onClick={() => setIsEditing(true)}>Edit Configuration</button>
+                    ) : (
+                        <p style={{ color: '#ffb86c' }}>Administrator privileges required to edit configuration.</p>
+                    )}
                 </div>
             </div>
         );
@@ -282,7 +286,7 @@ const MissionForm = () => {
                 </div>
             </div>
 
-            <div className="form-group checkbox-group" style={{marginTop: "10px"}}>
+            <div className="form-group checkbox-group" style={{ marginTop: "10px" }}>
                 <input type="checkbox" name="agreeTerms" id="agreeTerms" checked={formData.agreeTerms} onChange={handleChange} />
                 <label htmlFor="agreeTerms">Acknowledge Mission Control Authority & Protocol Terms</label>
             </div>

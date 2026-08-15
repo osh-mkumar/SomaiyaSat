@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { fetchLocalSatellites } from '../services/satelliteApi';
 
 // ==========================================
 // CONSTANTS & INITIAL DATA
 // ==========================================
 const MAX_HISTORY = 30;
 
-const INITIAL_SATELLITES = [
-    { id: 1, name: "SomaiyaSat-1", battery: 82, signal: 91, temp: 24.5, altitude: 505, communication: "Online" },
-    { id: 2, name: "SomaiyaSat-2", battery: 48, signal: 63, temp: 15.2, altitude: 496, communication: "Online" },
-    { id: 3, name: "SomaiyaSat-3", battery: 18, signal: 34, temp: 42.1, altitude: 462, communication: "Offline" },
-];
+// INITIAL_SATELLITES removed, data now fetched from API
 
 const INITIAL_LIMITS = {
     upperBattery: 100,
@@ -37,7 +34,7 @@ const calculateStatus = (battery, signal, communication) => {
 
 const Sparkline = ({ data, color, min, max }) => {
     if (!data || data.length === 0) return null;
-    
+
     // Normalize data to 0-100 height, 0-100 width
     const pts = data.map((val, i) => {
         const x = (i / (MAX_HISTORY - 1)) * 100;
@@ -66,20 +63,44 @@ const ProgressBar = ({ value, color }) => {
     );
 };
 
-const TelemetryPanel = () => {
-    const [satellites, setSatellites] = useState(INITIAL_SATELLITES);
-    const [history, setHistory] = useState({
-        1: { battery: Array(MAX_HISTORY).fill(82), signal: Array(MAX_HISTORY).fill(91), temp: Array(MAX_HISTORY).fill(24.5) },
-        2: { battery: Array(MAX_HISTORY).fill(48), signal: Array(MAX_HISTORY).fill(63), temp: Array(MAX_HISTORY).fill(15.2) },
-        3: { battery: Array(MAX_HISTORY).fill(18), signal: Array(MAX_HISTORY).fill(34), temp: Array(MAX_HISTORY).fill(42.1) },
-    });
-    
+const TelemetryPanel = ({ role }) => {
+    const [satellites, setSatellites] = useState([]);
+    const [history, setHistory] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [selectedSatelliteId, setSelectedSatelliteId] = useState(null);
-    const [role, setRole] = useState("Admin"); // "Admin" or "Student"
     const [showSettings, setShowSettings] = useState(false);
     const [limits, setLimits] = useState(INITIAL_LIMITS);
     const [draftLimits, setDraftLimits] = useState(INITIAL_LIMITS);
+
+    useEffect(() => {
+        fetchLocalSatellites()
+            .then(data => {
+                setSatellites(data);
+                
+                // Initialize history for fetched satellites
+                const initialHistory = {};
+                data.forEach(sat => {
+                    initialHistory[sat.id] = {
+                        battery: Array(MAX_HISTORY).fill(sat.battery),
+                        signal: Array(MAX_HISTORY).fill(sat.signal),
+                        temp: Array(MAX_HISTORY).fill(sat.temp),
+                    };
+                });
+                setHistory(initialHistory);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to load satellite data:", err);
+                setError(err.message);
+                setLoading(false);
+            });
+    }, []);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -92,7 +113,7 @@ const TelemetryPanel = () => {
                     const newBattery = Math.max(0, Math.min(100, sat.battery + batteryDelta));
                     const newSignal = Math.max(0, Math.min(100, sat.signal + signalDelta));
                     const newTemp = Math.max(-20, Math.min(80, sat.temp + tempDelta));
-                    
+
                     // Simple simulated orbit drift
                     const newOrbit = sat.altitude + (Math.random() * 0.2 - 0.1);
 
@@ -110,11 +131,13 @@ const TelemetryPanel = () => {
                     const nextHist = { ...prevHist };
                     nextSats.forEach(sat => {
                         const h = nextHist[sat.id];
-                        nextHist[sat.id] = {
-                            battery: [...h.battery.slice(1), sat.battery],
-                            signal: [...h.signal.slice(1), sat.signal],
-                            temp: [...h.temp.slice(1), sat.temp],
-                        };
+                        if (h && h.battery) {
+                            nextHist[sat.id] = {
+                                battery: [...h.battery.slice(1), sat.battery],
+                                signal: [...h.signal.slice(1), sat.signal],
+                                temp: [...h.temp.slice(1), sat.temp],
+                            };
+                        }
                     });
                     return nextHist;
                 });
@@ -123,7 +146,7 @@ const TelemetryPanel = () => {
                 return nextSats;
             });
         }, limits.refreshInterval);
-        
+
         return () => clearInterval(interval);
     }, [limits.refreshInterval]);
 
@@ -134,6 +157,15 @@ const TelemetryPanel = () => {
             status: calculateStatus(sat.battery, sat.signal, sat.communication)
         }));
     }, [satellites]);
+
+    const filteredSatellites = useMemo(() => {
+        return satellitesWithStatus.filter(sat => {
+            const matchesSearch = sat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                  String(sat.id).toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = statusFilter === "all" || sat.status.toLowerCase() === statusFilter.toLowerCase();
+            return matchesSearch && matchesStatus;
+        });
+    }, [satellitesWithStatus, searchTerm, statusFilter]);
 
     const criticalCount = satellitesWithStatus.filter(s => s.status === "CRITICAL").length;
     const selectedSatellite = satellitesWithStatus.find(s => s.id === selectedSatelliteId);
@@ -148,23 +180,16 @@ const TelemetryPanel = () => {
             <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h3 style={{ margin: 0 }}>05. Satellite Telemetry Dashboard</h3>
                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                    <div style={{ fontSize: '0.8em', background: '#1a2235', padding: '4px 10px', borderRadius: '4px', border: '1px solid #334' }}>
-                        Role: 
-                        <select value={role} onChange={e => setRole(e.target.value)} style={{ background: 'transparent', color: '#0df', border: 'none', marginLeft: '5px' }}>
-                            <option value="Admin">Admin</option>
-                            <option value="Student">Student</option>
-                        </select>
-                    </div>
                     {(role === "Admin" || showSettings) && (
-                        <button 
-                            className="settings-icon-btn" 
+                        <button
+                            className="settings-icon-btn"
                             onClick={() => {
                                 setDraftLimits(limits);
                                 setShowSettings(!showSettings);
                             }}
                             style={{ background: 'none', border: 'none', color: '#0df', cursor: 'pointer' }}
                         >
-                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                         </button>
                     )}
                 </div>
@@ -179,23 +204,23 @@ const TelemetryPanel = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                             <div className="form-group">
                                 <label>Upper Battery Alarm Limit (%)</label>
-                                <input type="number" value={draftLimits.upperBattery} onChange={e => setDraftLimits({...draftLimits, upperBattery: Number(e.target.value)})} style={{ width: '100%', padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }} />
+                                <input type="number" value={draftLimits.upperBattery} onChange={e => setDraftLimits({ ...draftLimits, upperBattery: Number(e.target.value) })} style={{ width: '100%', padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }} />
                             </div>
                             <div className="form-group">
                                 <label>Lower Battery Alarm Limit (%)</label>
-                                <input type="number" value={draftLimits.lowerBattery} onChange={e => setDraftLimits({...draftLimits, lowerBattery: Number(e.target.value)})} style={{ width: '100%', padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }} />
+                                <input type="number" value={draftLimits.lowerBattery} onChange={e => setDraftLimits({ ...draftLimits, lowerBattery: Number(e.target.value) })} style={{ width: '100%', padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }} />
                             </div>
                             <div className="form-group">
                                 <label>Temperature Alarm Limit (°C)</label>
-                                <input type="number" value={draftLimits.tempAlarm} onChange={e => setDraftLimits({...draftLimits, tempAlarm: Number(e.target.value)})} style={{ width: '100%', padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }} />
+                                <input type="number" value={draftLimits.tempAlarm} onChange={e => setDraftLimits({ ...draftLimits, tempAlarm: Number(e.target.value) })} style={{ width: '100%', padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }} />
                             </div>
                             <div className="form-group">
                                 <label>Refresh Interval (ms)</label>
-                                <input type="number" value={draftLimits.refreshInterval} onChange={e => setDraftLimits({...draftLimits, refreshInterval: Number(e.target.value)})} style={{ width: '100%', padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }} />
+                                <input type="number" value={draftLimits.refreshInterval} onChange={e => setDraftLimits({ ...draftLimits, refreshInterval: Number(e.target.value) })} style={{ width: '100%', padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }} />
                             </div>
                             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <label style={{ margin: 0 }}>High Temperature Alert</label>
-                                <input type="checkbox" checked={draftLimits.highTempAlert} onChange={e => setDraftLimits({...draftLimits, highTempAlert: e.target.checked})} />
+                                <input type="checkbox" checked={draftLimits.highTempAlert} onChange={e => setDraftLimits({ ...draftLimits, highTempAlert: e.target.checked })} />
                             </div>
                             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginTop: '10px' }}>
                                 <button onClick={handleApplySettings} style={{ background: '#0df', color: '#000', border: 'none', padding: '8px 16px', cursor: 'pointer', fontWeight: 'bold' }}>Apply Changes</button>
@@ -209,7 +234,28 @@ const TelemetryPanel = () => {
             <p className="update-time" style={{ fontFamily: 'monospace', color: '#8892b0', margin: '0 0 15px 0' }}>
                 Last Updated: {lastUpdated.toLocaleTimeString()}
             </p>
-            
+
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', padding: '15px', background: '#111827', border: '1px solid #334', borderRadius: '4px' }}>
+                <input 
+                    type="text" 
+                    placeholder="Search satellites..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)} 
+                    style={{ flex: 1, padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }}
+                />
+                <select 
+                    value={statusFilter} 
+                    onChange={e => setStatusFilter(e.target.value)}
+                    style={{ padding: '8px', background: '#0a0f18', color: '#fff', border: '1px solid #334' }}
+                >
+                    <option value="all">All Status</option>
+                    <option value="nominal">Nominal</option>
+                    <option value="warning">Warning</option>
+                    <option value="critical">Critical</option>
+                    <option value="offline">Offline</option>
+                </select>
+            </div>
+
             <div className="summary-card" style={{ background: '#111827', padding: '15px', border: '1px solid #334', borderLeft: '4px solid #0df', marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1em' }}>Mission Status Summary</h3>
                 <div style={{ display: 'flex', gap: '30px' }}>
@@ -218,25 +264,39 @@ const TelemetryPanel = () => {
                 </div>
             </div>
 
-            <div className="satellite-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-                {satellitesWithStatus.map((sat) => {
+            {loading && <div style={{ color: '#0df', marginBottom: '20px' }}>Loading satellite telemetry...</div>}
+            
+            {error && (
+                <div style={{ color: '#ff5555', marginBottom: '20px' }}>
+                    <p>Unable to load satellite telemetry.</p>
+                    <button onClick={() => window.location.reload()} style={{ background: '#334', color: '#fff', border: 'none', padding: '5px 10px', cursor: 'pointer' }}>Try Again</button>
+                </div>
+            )}
+
+            {!loading && !error && filteredSatellites.length === 0 && (
+                <div style={{ color: '#ffb86c', marginBottom: '20px' }}>No satellites match your criteria.</div>
+            )}
+
+            {!loading && !error && filteredSatellites.length > 0 && (
+                <div className="satellite-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+                    {filteredSatellites.map((sat) => {
                     const isSelected = selectedSatelliteId === sat.id;
                     const hist = history[sat.id];
                     let borderColor = '#334';
                     let accentColor = '#0df';
-                    
+
                     if (sat.status === 'WARNING') { borderColor = '#ffb86c'; accentColor = '#ffb86c'; }
                     if (sat.status === 'CRITICAL') { borderColor = '#ff5555'; accentColor = '#ff5555'; }
                     if (isSelected) borderColor = '#0df'; // override if selected
 
                     return (
-                        <div 
-                            key={sat.id} 
+                        <div
+                            key={sat.id}
                             className={`sat-card ${sat.status.toLowerCase()}`}
                             onClick={() => setSelectedSatelliteId(sat.id)}
-                            style={{ 
+                            style={{
                                 cursor: 'pointer',
-                                background: '#0d131f', 
+                                background: '#0d131f',
                                 border: `1px solid ${borderColor}`,
                                 padding: '15px',
                                 borderRadius: '4px',
@@ -246,19 +306,23 @@ const TelemetryPanel = () => {
                         >
                             <h3 style={{ margin: '0 0 15px 0', borderBottom: `1px solid ${borderColor}`, paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 {sat.name}
-                                <span style={{ fontSize: '0.8em', color: accentColor }}>{getStatusEmoji(sat.status)} {sat.status}</span>
+                                <div style={{ textAlign: 'right' }}>
+                                    <span style={{ fontSize: '0.8em', color: accentColor, display: 'block' }}>{getStatusEmoji(sat.status)} {sat.status}</span>
+                                    {sat.status === 'CRITICAL' && <span style={{ fontSize: '0.6em', color: '#ff5555', display: 'block' }}>Immediate Mission Attention Required</span>}
+                                    {sat.communication === 'Offline' && <span style={{ fontSize: '0.6em', color: '#ff5555', display: 'block' }}>Communication Lost</span>}
+                                </div>
                             </h3>
-                            
+
                             <div style={{ marginBottom: '15px' }}>
                                 <div style={{ fontSize: '0.8em', color: '#8892b0', marginBottom: '4px' }}>Battery</div>
                                 <ProgressBar value={sat.battery} color={accentColor} />
-                                <Sparkline data={hist.battery} color={accentColor} min={0} max={100} />
+                                {hist && <Sparkline data={hist.battery} color={accentColor} min={0} max={100} />}
                             </div>
-                            
+
                             <div style={{ marginBottom: '15px' }}>
                                 <div style={{ fontSize: '0.8em', color: '#8892b0', marginBottom: '4px' }}>Signal</div>
                                 <ProgressBar value={sat.signal} color={accentColor} />
-                                <Sparkline data={hist.signal} color={accentColor} min={0} max={100} />
+                                {hist && <Sparkline data={hist.signal} color={accentColor} min={0} max={100} />}
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.9em' }}>
@@ -279,6 +343,7 @@ const TelemetryPanel = () => {
                     );
                 })}
             </div>
+            )}
 
             {selectedSatellite && (
                 <div className="selected-satellite-detail" style={{ background: '#0a0f18', border: '1px solid #0df', padding: '20px', borderRadius: '4px' }}>
