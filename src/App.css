@@ -648,3 +648,145 @@ body {
     color: var(--text-main);
     font-weight: bold;
 }
+
+/* ===========================
+   OVERLAYS
+=========================== */
+.overlay-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(8, 17, 31, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+
+.overlay-content {
+    background: var(--bg-panel);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 4px;
+    width: 450px;
+    max-width: 90vw;
+    box-shadow: 0 0 20px rgba(0, 207, 255, 0.15);
+    display: flex;
+    flex-direction: column;
+}
+
+.overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.overlay-header h2 {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    color: var(--accent-cyan);
+    margin: 0;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: var(--status-red);
+}
+
+.overlay-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.overlay-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-dark);
+}
+
+/* ===========================
+   VIRTUAL TABS
+=========================== */
+.virtual-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.virtual-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    padding: 8px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.virtual-tab-btn.active {
+    color: var(--accent-cyan);
+    border-bottom: 2px solid var(--accent-cyan);
+    background: rgba(0, 207, 255, 0.05);
+}
+
+.virtual-tab-btn:hover:not(.active) {
+    color: var(--text-main);
+}
+
+/* ===========================
+   DRAG AND DROP
+=========================== */
+.payload-queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.draggable-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    cursor: grab;
+    transition: 0.2s;
+}
+
+.draggable-item:active {
+    cursor: grabbing;
+    opacity: 0.8;
+}
+
+.draggable-item.locked-item {
+    cursor: not-allowed;
+    border-color: rgba(255, 85, 85, 0.5);
+}
+
+.draggable-item.drag-over {
+    border-top: 2px solid var(--accent-cyan);
+}
+
+.drag-handle {
+    color: var(--text-muted);
+    margin-right: 15px;
+    cursor: grab;
+}
+

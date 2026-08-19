@@ -78,29 +78,138 @@ const OverviewTab = () => (
   </section>
 );
 
-const AiRoutingTab = () => (
-  <section className="sci-section">
-    <h3>02. Autonomous Routing Engine</h3>
-    <p>
-      The onboard scheduler determines which subsystem should receive
-      communication bandwidth based on battery percentage, signal quality, queue
-      urgency, and mission objectives.
-    </p>
-    <div className="code-block">
-      <div className="code-header">AI_PRIORITY_SCHEDULER.LOG</div>
-      <pre>{`[Priority 1] TT&C / Housekeeping
-[Priority 2] SSTV Image Downlink
-[Priority 3] Codec2 Voice
-[Priority 4] M17 Digital Communication
+const AiRoutingTab = () => {
+    const [activeAIRoutingView, setActiveAIRoutingView] = useState('DECISION QUEUE');
 
-IF Battery < 25%
-    -> Enable Power Saving
-    -> Suspend Imaging
-ELSE
-    -> Continue Normal Operations`}</pre>
-    </div>
-  </section>
-);
+    const renderView = () => {
+        if (activeAIRoutingView === 'DECISION QUEUE') {
+            return (
+                <div className="spec-table">
+                    <div className="table-row" style={{ borderBottom: '2px solid #1a2b4c' }}>
+                        <span className="col-title" style={{ flex: 1 }}>Payload</span>
+                        <span className="col-title" style={{ width: '100px' }}>Priority</span>
+                        <span className="col-title" style={{ width: '80px' }}>Size</span>
+                        <span className="col-title" style={{ width: '100px' }}>Status</span>
+                        <span className="col-title" style={{ width: '120px' }}>Est. Time</span>
+                    </div>
+                    <div className="table-row">
+                        <span style={{ flex: 1 }}>TT&C (Housekeeping)</span>
+                        <span style={{ width: '100px', color: '#ff5555' }}>Critical</span>
+                        <span style={{ width: '80px' }}>12 KB</span>
+                        <span style={{ width: '100px', color: '#0df' }}>Queued</span>
+                        <span style={{ width: '120px' }}>T-0:15</span>
+                    </div>
+                    <div className="table-row">
+                        <span style={{ flex: 1 }}>SSTV Image Downlink</span>
+                        <span style={{ width: '100px', color: '#ffb86c' }}>High</span>
+                        <span style={{ width: '80px' }}>420 KB</span>
+                        <span style={{ width: '100px', color: '#0df' }}>Queued</span>
+                        <span style={{ width: '120px' }}>T-1:30</span>
+                    </div>
+                    <div className="table-row">
+                        <span style={{ flex: 1 }}>M17 Digital</span>
+                        <span style={{ width: '100px', color: '#8892b0' }}>Medium</span>
+                        <span style={{ width: '80px' }}>85 KB</span>
+                        <span style={{ width: '100px', color: '#0df' }}>Queued</span>
+                        <span style={{ width: '120px' }}>T-3:45</span>
+                    </div>
+                    <div className="table-row">
+                        <span style={{ flex: 1 }}>Codec2 Voice</span>
+                        <span style={{ width: '100px', color: '#8892b0' }}>Medium</span>
+                        <span style={{ width: '80px' }}>40 KB</span>
+                        <span style={{ width: '100px', color: '#0df' }}>Queued</span>
+                        <span style={{ width: '120px' }}>T-5:00</span>
+                    </div>
+                </div>
+            );
+        }
+        
+        if (activeAIRoutingView === 'CURRENT DECISION') {
+            return (
+                <div className="summary-card" style={{ background: '#111827', padding: '20px', border: '1px solid #334', borderLeft: '4px solid #0df', marginTop: '20px' }}>
+                    <h3 style={{ margin: '0 0 15px 0', color: '#0df' }}>AI ROUTING DECISION</h3>
+                    
+                    <div style={{ marginBottom: '20px' }}>
+                        <div style={{ color: '#8892b0', fontSize: '0.9em', marginBottom: '5px' }}>Selected Payload</div>
+                        <div style={{ fontSize: '1.5em', fontWeight: 'bold' }}>TT&C (Housekeeping)</div>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                        <div>
+                            <div style={{ color: '#8892b0', fontSize: '0.9em' }}>Battery</div>
+                            <div style={{ color: '#ffb86c' }}>24% (Low)</div>
+                        </div>
+                        <div>
+                            <div style={{ color: '#8892b0', fontSize: '0.9em' }}>Signal</div>
+                            <div style={{ color: '#50fa7b' }}>94% (Strong)</div>
+                        </div>
+                        <div>
+                            <div style={{ color: '#8892b0', fontSize: '0.9em' }}>Pass Remaining</div>
+                            <div>12m 15s</div>
+                        </div>
+                        <div>
+                            <div style={{ color: '#8892b0', fontSize: '0.9em' }}>Payload Priority</div>
+                            <div style={{ color: '#ff5555' }}>Critical</div>
+                        </div>
+                    </div>
+                    
+                    <div style={{ background: '#0a0f18', padding: '15px', borderLeft: '2px solid #ffb86c' }}>
+                        <div style={{ color: '#8892b0', fontSize: '0.9em', marginBottom: '5px' }}>Decision Explanation</div>
+                        <p style={{ margin: 0 }}>Battery level is low and the communication window is limited. Critical telemetry has been prioritized. SSTV imaging suspended until battery &gt; 30%.</p>
+                        <div style={{ marginTop: '10px', fontSize: '0.9em' }}>
+                            <strong style={{ color: '#8892b0' }}>Confidence:</strong> <span style={{ color: '#50fa7b' }}>94.2%</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        if (activeAIRoutingView === 'HISTORY') {
+            return (
+                <div className="spec-table">
+                    <div className="table-row" style={{ borderBottom: '2px solid #1a2b4c' }}>
+                        <span className="col-title" style={{ width: '100px' }}>Time</span>
+                        <span className="col-title" style={{ flex: 1 }}>Selected</span>
+                        <span className="col-title" style={{ width: '60px' }}>Batt</span>
+                        <span className="col-title" style={{ width: '60px' }}>Sig</span>
+                        <span className="col-title" style={{ flex: 2 }}>Reason</span>
+                    </div>
+                    <div className="table-row">
+                        <span style={{ width: '100px' }}>14:20:10</span>
+                        <span style={{ flex: 1 }}>SSTV Image</span>
+                        <span style={{ width: '60px', color: '#50fa7b' }}>89%</span>
+                        <span style={{ width: '60px', color: '#50fa7b' }}>92%</span>
+                        <span style={{ flex: 2, fontSize: '0.9em', color: '#8892b0' }}>Optimal conditions for high bandwidth data.</span>
+                    </div>
+                    <div className="table-row">
+                        <span style={{ width: '100px' }}>12:45:05</span>
+                        <span style={{ flex: 1 }}>TT&C</span>
+                        <span style={{ width: '60px', color: '#ffb86c' }}>45%</span>
+                        <span style={{ width: '60px', color: '#ffb86c' }}>65%</span>
+                        <span style={{ flex: 2, fontSize: '0.9em', color: '#8892b0' }}>Routine sync cycle priority.</span>
+                    </div>
+                </div>
+            );
+        }
+    };
+
+    return (
+        <section className="sci-section">
+            <h3>02. Autonomous Routing Engine</h3>
+            <p>
+                The onboard scheduler determines which subsystem should receive
+                communication bandwidth based on battery percentage, signal quality, queue
+                urgency, and mission objectives.
+            </p>
+            <div className="virtual-tabs" style={{ marginTop: '20px' }}>
+                <button className={`virtual-tab-btn ${activeAIRoutingView === 'DECISION QUEUE' ? 'active' : ''}`} onClick={() => setActiveAIRoutingView('DECISION QUEUE')}>DECISION QUEUE</button>
+                <button className={`virtual-tab-btn ${activeAIRoutingView === 'CURRENT DECISION' ? 'active' : ''}`} onClick={() => setActiveAIRoutingView('CURRENT DECISION')}>CURRENT DECISION</button>
+                <button className={`virtual-tab-btn ${activeAIRoutingView === 'HISTORY' ? 'active' : ''}`} onClick={() => setActiveAIRoutingView('HISTORY')}>HISTORY</button>
+            </div>
+            {renderView()}
+        </section>
+    );
+};
 
 // PayloadsTab removed as it is now in its own component
 

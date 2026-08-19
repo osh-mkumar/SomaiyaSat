@@ -1,16 +1,57 @@
-# React + Vite
+# SomaiyaSat & SomaiyaPod Mission Profile
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**Autonomous Inter-Satellite Data Routing & Payload System**
 
-Currently, two official plugins are available:
+SomaiyaSat is a PocketQube satellite designed to demonstrate autonomous communication scheduling and intelligent payload management. Operating alongside SomaiyaPod, the spacecraft validates deployment, initializes flight software, and begins telemetry transmission automatically.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The onboard AI continuously evaluates communication quality, available battery power, and payload priorities to maximize data return during limited ground station visibility windows.
 
-## React Compiler
+## Technical Parameters
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Mission ID**: KJS-SRS-01
+- **Orbit**: Low Earth Orbit (LEO)
+- **Form Factor**: PocketQube (5cm Unit)
+- **Power Budget**: < 1.0W Average
+- **AI Subsystem**: Decision Tree / Policy Agent
+- **Primary Frequencies**: Amateur HAM Bands
 
-## Expanding the Oxlint configuration
+## Key Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+1. **Autonomous Routing Engine**: The onboard scheduler determines which subsystem should receive communication bandwidth based on battery percentage, signal quality, queue urgency, and mission objectives.
+2. **Dynamic Mode Switching**: e.g., if Battery < 25%, enables power saving and suspends imaging.
+3. **Payload Operations**: Priority scheduling for TT&C (Housekeeping), SSTV (Image Downlink), Codec2 (Voice), and M17 (Digital Communication).
+
+## Tech Stack
+- **Frontend**: React 19, Vite
+- **Data Fetching**: Axios
+- **Mock Backend**: `json-server` for local telemetry and payload data
+- **External API**: Integration with ISS tracking API for orbit visualization.
+
+## Getting Started
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Run the development server (runs both Vite frontend and json-server mock backend):
+   ```bash
+   npm run dev
+   ```
+
+3. The app will be available at `http://localhost:5173`. The mock API runs on `http://localhost:3001`.
+
+## UI Components Overview
+- **TopBar**: User authentication/role management (Admin, User, etc.).
+- **Sidebar**: Navigation between the Mission Dashboard, Telemetry, Payloads, External Data, and AI Routing engine tabs.
+- **Mission Dashboard Grid**: Contains real-time overview via `RFPanel`, `TelemetryPanel`, and `OrbitPanel`.
+- **Payloads Panel**: Visualizes queue and payload execution status.
+- **External Data Panel**: Pulls and displays external satellite data (like ISS positions).
+
+## Scripts
+
+- `npm run dev`: Starts the React app and JSON mock server concurrently.
+- `npm run build`: Builds the app for production.
+- `npm run lint`: Runs Oxlint.
+- `npm run preview`: Previews the production build.
+- `npm run api`: Starts the JSON server independently.

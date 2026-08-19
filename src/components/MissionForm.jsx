@@ -1,45 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import {
-    validateUsername,
-    validatePassword,
-    validateEmail,
     validateMissionId,
     validateFrequency,
-    validateEmergencyContact,
-    validateOperatorName,
-    validateSatelliteNickname,
-    validateCountry,
-    validateTerms
+    validateSatelliteNickname
 } from '../utils/Validation';
 
 const INITIAL_DATA = {
-    missionName: 'SomaiyaSat Demo',
+    // Mission Identity
     missionId: 'KJS-SRS-01',
-    operatorName: 'John Doe',
-    operatorEmail: 'operator@somaiya.edu',
     satelliteNickname: 'SomaiyaPod-Alpha',
-    communicationFrequency: '435',
-    bandwidth: '12.5kHz',
     missionMode: 'Nominal',
-    powerSlider: '50',
     targetOrbit: 'LEO',
-    country: 'IN',
-    emergencyContact: '9876543210',
-    username: 'admin',
-    password: 'Password1',
-    confirmPassword: 'Password1',
-    agreeTerms: true
+    
+    // RF Configuration
+    uplinkFrequency: '435.000',
+    downlinkFrequency: '437.450',
+    bandwidth: '12.5kHz',
+    modulation: 'FSK',
+    transmitPower: '50',
+    
+    // Power & Safety
+    batteryWarning: '30',
+    criticalBattery: '15',
+    tempWarning: '45',
+    safeModeTrigger: 'Battery',
+    
+    // Payload Configuration
+    sstvPriority: 'High',
+    m17Priority: 'Normal',
+    codec2Priority: 'Normal',
+    maxSstvSize: '500',
+    
+    // Ground Station
+    gsId: 'GS-MUMBAI-01',
+    gsLat: '19.0760',
+    gsLon: '72.8777',
+    commWindow: '15'
 };
 
 const MissionForm = ({ role }) => {
     const [isEditing, setIsEditing] = useState(false);
-
-    // Maintain originalData for the read-only view and for resetting
     const [originalData, setOriginalData] = useState(INITIAL_DATA);
-
-    // Maintain formData for the editable view
     const [formData, setFormData] = useState(INITIAL_DATA);
-
     const [errors, setErrors] = useState({});
     const [isFormValid, setIsFormValid] = useState(false);
 
@@ -48,48 +50,25 @@ const MissionForm = ({ role }) => {
 
         const newErrors = {};
 
-        if (formData.username && !validateUsername(formData.username)) {
-            newErrors.username = "Username minimum 4 characters";
-        }
-        if (formData.password && !validatePassword(formData.password)) {
-            newErrors.password = "Min 6 chars, 1 uppercase, 1 number";
-        }
-        if (formData.confirmPassword && formData.confirmPassword !== formData.password) {
-            newErrors.confirmPassword = "Passwords do not match";
-        }
-        if (formData.operatorEmail && !validateEmail(formData.operatorEmail)) {
-            newErrors.operatorEmail = "Invalid email format";
-        }
         if (formData.missionId && !validateMissionId(formData.missionId)) {
             newErrors.missionId = "Must match pattern: KJS-SRS-01";
-        }
-        if (formData.communicationFrequency && !validateFrequency(formData.communicationFrequency)) {
-            newErrors.communicationFrequency = "Must be a number between 430-450";
-        }
-        if (formData.emergencyContact && !validateEmergencyContact(formData.emergencyContact)) {
-            newErrors.emergencyContact = "Must be exactly 10 digits";
-        }
-        if (formData.operatorName && !validateOperatorName(formData.operatorName)) {
-            newErrors.operatorName = "Letters and spaces only";
         }
         if (formData.satelliteNickname && !validateSatelliteNickname(formData.satelliteNickname)) {
             newErrors.satelliteNickname = "Letters, numbers, dash only";
         }
-        if (formData.country !== '' && !validateCountry(formData.country)) {
-            newErrors.country = "Select a country";
+        if (formData.uplinkFrequency && !validateFrequency(formData.uplinkFrequency)) {
+            newErrors.uplinkFrequency = "Must be a number between 430-450";
+        }
+        if (formData.downlinkFrequency && !validateFrequency(formData.downlinkFrequency)) {
+            newErrors.downlinkFrequency = "Must be a number between 430-450";
         }
 
         setErrors(newErrors);
 
-        const allFilled = formData.missionName && formData.missionId && formData.operatorName &&
-            formData.operatorEmail && formData.satelliteNickname && formData.communicationFrequency &&
-            formData.country && formData.emergencyContact && formData.username && formData.password &&
-            formData.confirmPassword && formData.agreeTerms;
-
+        const allFilled = formData.missionId && formData.satelliteNickname && formData.uplinkFrequency && formData.downlinkFrequency;
         const hasNoErrors = Object.keys(newErrors).length === 0;
 
         setIsFormValid(!!(allFilled && hasNoErrors));
-
     }, [formData, isEditing]);
 
     const handleChange = (e) => {
@@ -117,50 +96,32 @@ const MissionForm = ({ role }) => {
     if (!isEditing) {
         return (
             <div className="mission-summary">
-                <div className="form-section-divider">Mission Identity</div>
-                <div className="summary-row">
-                    <span className="summary-label">Mission Name:</span> <span className="summary-val">{originalData.missionName || 'N/A'}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Mission ID:</span> <span className="summary-val">{originalData.missionId || 'N/A'}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Operator Name:</span> <span className="summary-val">{originalData.operatorName || 'N/A'}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Operator Email:</span> <span className="summary-val">{originalData.operatorEmail || 'N/A'}</span>
-                </div>
+                <div className="form-section-divider">Mission Profile</div>
+                <div className="summary-row"><span className="summary-label">Mission ID:</span> <span className="summary-val">{originalData.missionId}</span></div>
+                <div className="summary-row"><span className="summary-label">Satellite Nickname:</span> <span className="summary-val">{originalData.satelliteNickname}</span></div>
+                <div className="summary-row"><span className="summary-label">Mission Mode:</span> <span className="summary-val">{originalData.missionMode}</span></div>
+                <div className="summary-row"><span className="summary-label">Target Orbit:</span> <span className="summary-val">{originalData.targetOrbit}</span></div>
 
-                <div className="form-section-divider">Hardware & RF Link</div>
-                <div className="summary-row">
-                    <span className="summary-label">Satellite Nickname:</span> <span className="summary-val">{originalData.satelliteNickname || 'N/A'}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Frequency (MHz):</span> <span className="summary-val">{originalData.communicationFrequency || 'N/A'}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Bandwidth:</span> <span className="summary-val">{originalData.bandwidth}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Mission Mode:</span> <span className="summary-val">{originalData.missionMode}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Target Orbit:</span> <span className="summary-val">{originalData.targetOrbit}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Power Output Limit:</span> <span className="summary-val">{originalData.powerSlider}%</span>
-                </div>
+                <div className="form-section-divider">RF Configuration</div>
+                <div className="summary-row"><span className="summary-label">Uplink (MHz):</span> <span className="summary-val">{originalData.uplinkFrequency}</span></div>
+                <div className="summary-row"><span className="summary-label">Downlink (MHz):</span> <span className="summary-val">{originalData.downlinkFrequency}</span></div>
+                <div className="summary-row"><span className="summary-label">Bandwidth:</span> <span className="summary-val">{originalData.bandwidth}</span></div>
+                <div className="summary-row"><span className="summary-label">Modulation:</span> <span className="summary-val">{originalData.modulation}</span></div>
+                <div className="summary-row"><span className="summary-label">Transmit Power:</span> <span className="summary-val">{originalData.transmitPower}%</span></div>
 
-                <div className="form-section-divider">Security & Locale</div>
-                <div className="summary-row">
-                    <span className="summary-label">Country:</span> <span className="summary-val">{originalData.country || 'N/A'}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">Emergency Contact:</span> <span className="summary-val">{originalData.emergencyContact || 'N/A'}</span>
-                </div>
-                <div className="summary-row">
-                    <span className="summary-label">System Username:</span> <span className="summary-val">{originalData.username || 'N/A'}</span>
-                </div>
+                <div className="form-section-divider">Power & Safety</div>
+                <div className="summary-row"><span className="summary-label">Battery Warning:</span> <span className="summary-val">{originalData.batteryWarning}%</span></div>
+                <div className="summary-row"><span className="summary-label">Critical Battery:</span> <span className="summary-val">{originalData.criticalBattery}%</span></div>
+                <div className="summary-row"><span className="summary-label">Temp Warning:</span> <span className="summary-val">{originalData.tempWarning}°C</span></div>
+                <div className="summary-row"><span className="summary-label">Safe Mode Trigger:</span> <span className="summary-val">{originalData.safeModeTrigger}</span></div>
+
+                <div className="form-section-divider">Payload Config</div>
+                <div className="summary-row"><span className="summary-label">SSTV Priority:</span> <span className="summary-val">{originalData.sstvPriority}</span></div>
+                <div className="summary-row"><span className="summary-label">Max SSTV Size:</span> <span className="summary-val">{originalData.maxSstvSize} KB</span></div>
+
+                <div className="form-section-divider">Ground Station</div>
+                <div className="summary-row"><span className="summary-label">Station ID:</span> <span className="summary-val">{originalData.gsId}</span></div>
+                <div className="summary-row"><span className="summary-label">Comm Window:</span> <span className="summary-val">{originalData.commWindow} mins</span></div>
 
                 <div className="form-actions" style={{ marginTop: "20px" }}>
                     {role === "Admin" ? (
@@ -175,55 +136,19 @@ const MissionForm = ({ role }) => {
 
     return (
         <form className="mission-form" onSubmit={handleApplyChanges}>
-            <div className="form-section-divider">Mission Identity</div>
+            <div className="form-section-divider">Mission Profile</div>
             <div className="form-row">
-                <div className="form-group">
-                    <label>Mission Name</label>
-                    <input type="text" name="missionName" value={formData.missionName} onChange={handleChange} />
-                </div>
                 <div className="form-group">
                     <label>Mission ID</label>
-                    <input type="text" name="missionId" value={formData.missionId} onChange={handleChange} placeholder="KJS-SRS-01" />
+                    <input type="text" name="missionId" value={formData.missionId} onChange={handleChange} />
                     {errors.missionId && <span className="error-msg">{errors.missionId}</span>}
                 </div>
-            </div>
-
-            <div className="form-row">
                 <div className="form-group">
-                    <label>Operator Name</label>
-                    <input type="text" name="operatorName" value={formData.operatorName} onChange={handleChange} />
-                    {errors.operatorName && <span className="error-msg">{errors.operatorName}</span>}
-                </div>
-                <div className="form-group">
-                    <label>Operator Email</label>
-                    <input type="text" name="operatorEmail" value={formData.operatorEmail} onChange={handleChange} />
-                    {errors.operatorEmail && <span className="error-msg">{errors.operatorEmail}</span>}
+                    <label>Satellite Nickname</label>
+                    <input type="text" name="satelliteNickname" value={formData.satelliteNickname} onChange={handleChange} />
+                    {errors.satelliteNickname && <span className="error-msg">{errors.satelliteNickname}</span>}
                 </div>
             </div>
-
-            <div className="form-section-divider">Hardware & RF Link</div>
-            <div className="form-group">
-                <label>Satellite Nickname</label>
-                <input type="text" name="satelliteNickname" value={formData.satelliteNickname} onChange={handleChange} />
-                {errors.satelliteNickname && <span className="error-msg">{errors.satelliteNickname}</span>}
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Comm Frequency (MHz)</label>
-                    <input type="text" name="communicationFrequency" value={formData.communicationFrequency} onChange={handleChange} placeholder="430-450" />
-                    {errors.communicationFrequency && <span className="error-msg">{errors.communicationFrequency}</span>}
-                </div>
-                <div className="form-group">
-                    <label>Bandwidth</label>
-                    <select name="bandwidth" value={formData.bandwidth} onChange={handleChange}>
-                        <option value="12.5kHz">12.5kHz</option>
-                        <option value="25.0kHz">25.0kHz</option>
-                        <option value="19.2kHz">19.2kHz</option>
-                    </select>
-                </div>
-            </div>
-
             <div className="form-row">
                 <div className="form-group">
                     <label>Mission Mode</label>
@@ -243,52 +168,119 @@ const MissionForm = ({ role }) => {
                 </div>
             </div>
 
-            <div className="form-group">
-                <label>Power Output Limit: {formData.powerSlider}%</label>
-                <input type="range" name="powerSlider" min="0" max="100" value={formData.powerSlider} onChange={handleChange} />
-            </div>
-
-            <div className="form-section-divider">Security & Locale</div>
+            <div className="form-section-divider">RF Configuration</div>
             <div className="form-row">
                 <div className="form-group">
-                    <label>Country of Operation</label>
-                    <select name="country" value={formData.country} onChange={handleChange}>
-                        <option value="">Select Country</option>
-                        <option value="IN">India</option>
-                        <option value="US">USA</option>
-                        <option value="EU">Europe</option>
+                    <label>Uplink Freq (MHz)</label>
+                    <input type="text" name="uplinkFrequency" value={formData.uplinkFrequency} onChange={handleChange} />
+                    {errors.uplinkFrequency && <span className="error-msg">{errors.uplinkFrequency}</span>}
+                </div>
+                <div className="form-group">
+                    <label>Downlink Freq (MHz)</label>
+                    <input type="text" name="downlinkFrequency" value={formData.downlinkFrequency} onChange={handleChange} />
+                    {errors.downlinkFrequency && <span className="error-msg">{errors.downlinkFrequency}</span>}
+                </div>
+            </div>
+            <div className="form-row">
+                <div className="form-group">
+                    <label>Bandwidth</label>
+                    <select name="bandwidth" value={formData.bandwidth} onChange={handleChange}>
+                        <option value="12.5kHz">12.5kHz</option>
+                        <option value="25.0kHz">25.0kHz</option>
+                        <option value="19.2kHz">19.2kHz</option>
                     </select>
-                    {errors.country && <span className="error-msg">{errors.country}</span>}
                 </div>
                 <div className="form-group">
-                    <label>Emergency Contact</label>
-                    <input type="text" name="emergencyContact" value={formData.emergencyContact} onChange={handleChange} placeholder="10 Digits" />
-                    {errors.emergencyContact && <span className="error-msg">{errors.emergencyContact}</span>}
+                    <label>Modulation</label>
+                    <select name="modulation" value={formData.modulation} onChange={handleChange}>
+                        <option value="FSK">FSK</option>
+                        <option value="BPSK">BPSK</option>
+                        <option value="QPSK">QPSK</option>
+                    </select>
                 </div>
             </div>
-
             <div className="form-group">
-                <label>System Username</label>
-                <input type="text" name="username" value={formData.username} onChange={handleChange} />
-                {errors.username && <span className="error-msg">{errors.username}</span>}
+                <label>Transmit Power: {formData.transmitPower}%</label>
+                <input type="range" name="transmitPower" min="0" max="100" value={formData.transmitPower} onChange={handleChange} />
             </div>
 
+            <div className="form-section-divider">Power & Safety</div>
             <div className="form-row">
                 <div className="form-group">
-                    <label>Security Key (Password)</label>
-                    <input type="password" name="password" value={formData.password} onChange={handleChange} />
-                    {errors.password && <span className="error-msg">{errors.password}</span>}
+                    <label>Battery Warning (%)</label>
+                    <input type="number" name="batteryWarning" value={formData.batteryWarning} onChange={handleChange} />
                 </div>
                 <div className="form-group">
-                    <label>Confirm Key</label>
-                    <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} />
-                    {errors.confirmPassword && <span className="error-msg">{errors.confirmPassword}</span>}
+                    <label>Critical Battery (%)</label>
+                    <input type="number" name="criticalBattery" value={formData.criticalBattery} onChange={handleChange} />
+                </div>
+            </div>
+            <div className="form-row">
+                <div className="form-group">
+                    <label>Temp Warning (°C)</label>
+                    <input type="number" name="tempWarning" value={formData.tempWarning} onChange={handleChange} />
+                </div>
+                <div className="form-group">
+                    <label>Safe Mode Trigger</label>
+                    <select name="safeModeTrigger" value={formData.safeModeTrigger} onChange={handleChange}>
+                        <option value="Battery">Battery</option>
+                        <option value="Temperature">Temperature</option>
+                        <option value="Signal">Signal Loss</option>
+                    </select>
                 </div>
             </div>
 
-            <div className="form-group checkbox-group" style={{ marginTop: "10px" }}>
-                <input type="checkbox" name="agreeTerms" id="agreeTerms" checked={formData.agreeTerms} onChange={handleChange} />
-                <label htmlFor="agreeTerms">Acknowledge Mission Control Authority & Protocol Terms</label>
+            <div className="form-section-divider">Payload Config</div>
+            <div className="form-row">
+                <div className="form-group">
+                    <label>SSTV Priority</label>
+                    <select name="sstvPriority" value={formData.sstvPriority} onChange={handleChange}>
+                        <option value="Critical">Critical</option>
+                        <option value="High">High</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Max SSTV Size (KB)</label>
+                    <input type="number" name="maxSstvSize" value={formData.maxSstvSize} onChange={handleChange} />
+                </div>
+            </div>
+            <div className="form-row">
+                <div className="form-group">
+                    <label>M17 Priority</label>
+                    <select name="m17Priority" value={formData.m17Priority} onChange={handleChange}>
+                        <option value="Normal">Normal</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Codec2 Priority</label>
+                    <select name="codec2Priority" value={formData.codec2Priority} onChange={handleChange}>
+                        <option value="Normal">Normal</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="form-section-divider">Ground Station</div>
+            <div className="form-group">
+                <label>GS ID</label>
+                <input type="text" name="gsId" value={formData.gsId} onChange={handleChange} />
+            </div>
+            <div className="form-row">
+                <div className="form-group">
+                    <label>Latitude</label>
+                    <input type="text" name="gsLat" value={formData.gsLat} onChange={handleChange} />
+                </div>
+                <div className="form-group">
+                    <label>Longitude</label>
+                    <input type="text" name="gsLon" value={formData.gsLon} onChange={handleChange} />
+                </div>
+            </div>
+            <div className="form-group">
+                <label>Comm Window (mins)</label>
+                <input type="number" name="commWindow" value={formData.commWindow} onChange={handleChange} />
             </div>
 
             <div className="form-actions">
