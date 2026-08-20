@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+// Load global styles first so they apply to all components immediately.
 import "./App.css";
 
 import TopBar from "./components/TopBar";
@@ -37,6 +38,7 @@ const PAYLOAD_OPTIONS = ["TT&C", "SSTV", "Codec2", "M17"];
 // ==========================================
 
 const Hero = () => (
+  // Wrap the hero content in a semantic section tag for better accessibility.
   <section className="sci-hero">
     <div className="hero-badge">SOMAIYASAT & SOMAIYAPOD MISSION PROFILE</div>
     <h1>Autonomous Inter-Satellite Data Routing & Payload System</h1>

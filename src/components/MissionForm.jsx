@@ -39,6 +39,7 @@ const INITIAL_DATA = {
 };
 
 const MissionForm = ({ role }) => {
+    // Keep track of the original data separately so we can discard unsaved edits on cancel.
     const [isEditing, setIsEditing] = useState(false);
     const [originalData, setOriginalData] = useState(INITIAL_DATA);
     const [formData, setFormData] = useState(INITIAL_DATA);
@@ -46,6 +47,7 @@ const MissionForm = ({ role }) => {
     const [isFormValid, setIsFormValid] = useState(false);
 
     useEffect(() => {
+        // Re-run validation rules immediately when the user modifies any field while editing.
         if (!isEditing) return;
 
         const newErrors = {};
@@ -72,6 +74,7 @@ const MissionForm = ({ role }) => {
     }, [formData, isEditing]);
 
     const handleChange = (e) => {
+        // Extract the checked state for checkboxes, but fallback to the normal string value for text inputs.
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -80,6 +83,7 @@ const MissionForm = ({ role }) => {
     };
 
     const handleApplyChanges = (e) => {
+        // Prevent page reload on submit and only save if all validation checks passed.
         e.preventDefault();
         if (isFormValid) {
             setOriginalData(formData);
@@ -124,6 +128,7 @@ const MissionForm = ({ role }) => {
                 <div className="summary-row"><span className="summary-label">Comm Window:</span> <span className="summary-val">{originalData.commWindow} mins</span></div>
 
                 <div className="form-actions" style={{ marginTop: "20px" }}>
+                    {/* Hide the edit button for read-only users to prevent unauthorized changes */}
                     {role === "Admin" ? (
                         <button type="button" className="btn-primary" onClick={() => setIsEditing(true)}>Edit Configuration</button>
                     ) : (
