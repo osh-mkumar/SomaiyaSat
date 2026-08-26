@@ -10,11 +10,36 @@ import OrbitPanel from "./components/OrbitPanel";
 import PayloadsPanel from "./components/PayloadsPanel";
 import ExternalDataPanel from "./components/ExternalDataPanel";
 
+import PassSchedulingConsole from "./components/PassSchedulingConsole";
+
 // ==========================================
 // CONSTANTS & INITIAL DATA
 // ==========================================
 
-
+const INITIAL_SCHEDULED_PASSES = [
+  {
+    id: "PASS-1001",
+    satellite: "SomaiyaSat-1",
+    location: "19.0760° N, 72.8777° E",
+    latitude: 19.0760,
+    longitude: 72.8777,
+    time: "16:00 UTC",
+    date: new Date().toISOString().split('T')[0],
+    status: "Scheduled",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "PASS-1002",
+    satellite: "SomaiyaSat-2",
+    location: "28.6139° N, 77.2090° E",
+    latitude: 28.6139,
+    longitude: 77.2090,
+    time: "18:30 UTC",
+    date: new Date().toISOString().split('T')[0],
+    status: "Scheduled",
+    createdAt: new Date().toISOString()
+  }
+];
 
 const TELEMETRY_METRICS = {
   missionId: "KJS-SRS-01",
@@ -31,14 +56,11 @@ const PAYLOAD_OPTIONS = ["TT&C", "SSTV", "Codec2", "M17"];
 // HELPER FUNCTIONS
 // ==========================================
 
-
-
 // ==========================================
 // SUB-COMPONENTS
 // ==========================================
 
 const Hero = () => (
-  // Wrap the hero content in a semantic section tag for better accessibility.
   <section className="sci-hero">
     <div className="hero-badge">SOMAIYASAT & SOMAIYAPOD MISSION PROFILE</div>
     <h1>Autonomous Inter-Satellite Data Routing & Payload System</h1>
@@ -213,16 +235,17 @@ const AiRoutingTab = () => {
     );
 };
 
-// PayloadsTab removed as it is now in its own component
-
-
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
 
 function App() {
-  const [activeTab, setActiveTab] = useState("mission"); // Default to the new dashboard as per reqs
+  const [activeTab, setActiveTab] = useState("mission"); // Default to 04 // COMMAND & CONFIG
   const [role, setRole] = useState("Admin");
+  
+  // Shared pass state
+  const [scheduledPasses, setScheduledPasses] = useState(INITIAL_SCHEDULED_PASSES);
+  const [selectedPass, setSelectedPass] = useState(INITIAL_SCHEDULED_PASSES[0]);
 
   return (
     <div className="app-container">
@@ -238,7 +261,16 @@ function App() {
                 {activeTab === "overview" && <OverviewTab />}
                 {activeTab === "ai" && <AiRoutingTab />}
                 {activeTab === "payloads" && <PayloadsPanel role={role} />}
-                {activeTab === "telemetry" && <TelemetryPanel role={role} />}
+                {activeTab === "telemetry" && <TelemetryPanel role={role} selectedPass={selectedPass} />}
+                {activeTab === "passes" && (
+                  <PassSchedulingConsole
+                    role={role}
+                    scheduledPasses={scheduledPasses}
+                    setScheduledPasses={setScheduledPasses}
+                    selectedPass={selectedPass}
+                    setSelectedPass={setSelectedPass}
+                  />
+                )}
                 {activeTab === "external" && <ExternalDataPanel />}
               </div>
             </div>
@@ -246,9 +278,9 @@ function App() {
 
           {activeTab === 'mission' && (
             <div className="mission-dashboard-grid">
-              <RFPanel role={role} />
-              <TelemetryPanel role={role} />
-              <OrbitPanel />
+              <RFPanel role={role} selectedPass={selectedPass} />
+              <TelemetryPanel role={role} compact={true} selectedPass={selectedPass} />
+              <OrbitPanel selectedPass={selectedPass} />
             </div>
           )}
         </main>

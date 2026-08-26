@@ -38,3 +38,28 @@ export const validateCountry = (country) => {
 export const validateTerms = (agreed) => {
     return agreed === true;
 };
+
+export const validateLatitude = (lat) => {
+    const num = parseFloat(lat);
+    return !isNaN(num) && num >= -90 && num <= 90;
+};
+
+export const validateLongitude = (lon) => {
+    const num = parseFloat(lon);
+    return !isNaN(num) && num >= -180 && num <= 180;
+};
+
+export const validateDate = (dateStr) => {
+    if (!dateStr || typeof dateStr !== 'string') return false;
+    return dateStr.trim().length > 0;
+};
+
+export const validateTime = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return false;
+    return timeStr.trim().length > 0;
+};
+
+export const validateSatellite = (sat) => {
+    if (!sat || typeof sat !== 'string') return false;
+    return sat.trim().length > 0;
+};

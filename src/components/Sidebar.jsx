@@ -14,7 +14,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         { id: "payloads", label: "03 // PAYLOADS", icon: <IconPasses /> },
         { id: "mission", label: "04 // COMMAND & CONFIG", icon: <IconSettings /> },
         { id: "telemetry", label: "05 // TELEMETRY", icon: <IconTelemetry /> },
-        { id: "external", label: "06 // EXTERNAL DATA", icon: <IconDashboard /> },
+        { id: "passes", label: "06 // PASSES", icon: <IconPasses /> },
+        { id: "external", label: "07 // EXTERNAL DATA", icon: <IconDashboard /> },
     ];
 
     return (

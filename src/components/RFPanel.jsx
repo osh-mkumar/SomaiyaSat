@@ -1,12 +1,12 @@
 import React from 'react';
 import MissionForm from './MissionForm';
 
-const RFPanel = ({ role }) => {
+const RFPanel = ({ role, selectedPass }) => {
     return (
         <div className="panel rf-panel">
             <h2 className="panel-title">RF Configuration Panel</h2>
             <div className="panel-content">
-                <MissionForm role={role} />
+                <MissionForm role={role} selectedPass={selectedPass} />
             </div>
         </div>
     );

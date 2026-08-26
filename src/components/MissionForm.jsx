@@ -1,89 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import {
-    validateMissionId,
-    validateFrequency,
-    validateSatelliteNickname
+    validateFrequency
 } from '../utils/Validation';
 
 const INITIAL_DATA = {
-    // Mission Identity
-    missionId: 'KJS-SRS-01',
-    satelliteNickname: 'SomaiyaPod-Alpha',
-    missionMode: 'Nominal',
-    targetOrbit: 'LEO',
-    
-    // RF Configuration
-    uplinkFrequency: '435.000',
-    downlinkFrequency: '437.450',
+    frequency: '437.450',
     bandwidth: '12.5kHz',
-    modulation: 'FSK',
-    transmitPower: '50',
-    
-    // Power & Safety
-    batteryWarning: '30',
-    criticalBattery: '15',
-    tempWarning: '45',
-    safeModeTrigger: 'Battery',
-    
-    // Payload Configuration
-    sstvPriority: 'High',
-    m17Priority: 'Normal',
-    codec2Priority: 'Normal',
-    maxSstvSize: '500',
-    
-    // Ground Station
-    gsId: 'GS-MUMBAI-01',
-    gsLat: '19.0760',
-    gsLon: '72.8777',
-    commWindow: '15'
+    modes: {
+        M17: true,
+        Codec2: false,
+        SSTV: false
+    },
+    transmitPower: 50,
+    downtime: {
+        hours: 0,
+        minutes: 15,
+        seconds: 0
+    }
 };
 
-const MissionForm = ({ role }) => {
+const MissionForm = ({ role, selectedPass }) => {
     // Keep track of the original data separately so we can discard unsaved edits on cancel.
     const [isEditing, setIsEditing] = useState(false);
     const [originalData, setOriginalData] = useState(INITIAL_DATA);
     const [formData, setFormData] = useState(INITIAL_DATA);
     const [errors, setErrors] = useState({});
-    const [isFormValid, setIsFormValid] = useState(false);
+    const [isFormValid, setIsFormValid] = useState(true);
 
     useEffect(() => {
-        // Re-run validation rules immediately when the user modifies any field while editing.
         if (!isEditing) return;
 
         const newErrors = {};
 
-        if (formData.missionId && !validateMissionId(formData.missionId)) {
-            newErrors.missionId = "Must match pattern: KJS-SRS-01";
-        }
-        if (formData.satelliteNickname && !validateSatelliteNickname(formData.satelliteNickname)) {
-            newErrors.satelliteNickname = "Letters, numbers, dash only";
-        }
-        if (formData.uplinkFrequency && !validateFrequency(formData.uplinkFrequency)) {
-            newErrors.uplinkFrequency = "Must be a number between 430-450";
-        }
-        if (formData.downlinkFrequency && !validateFrequency(formData.downlinkFrequency)) {
-            newErrors.downlinkFrequency = "Must be a number between 430-450";
+        if (formData.frequency && !validateFrequency(formData.frequency)) {
+            newErrors.frequency = "Frequency must be between 430 - 450 MHz";
         }
 
         setErrors(newErrors);
-
-        const allFilled = formData.missionId && formData.satelliteNickname && formData.uplinkFrequency && formData.downlinkFrequency;
         const hasNoErrors = Object.keys(newErrors).length === 0;
-
-        setIsFormValid(!!(allFilled && hasNoErrors));
+        setIsFormValid(hasNoErrors);
     }, [formData, isEditing]);
 
-    const handleChange = (e) => {
-        // Extract the checked state for checkboxes, but fallback to the normal string value for text inputs.
-        const { name, value, type, checked } = e.target;
+    const handleTextChange = (e) => {
+        const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: value
+        }));
+    };
+
+    const handleModeToggle = (modeName) => {
+        setFormData(prev => ({
+            ...prev,
+            modes: {
+                ...prev.modes,
+                [modeName]: !prev.modes[modeName]
+            }
+        }));
+    };
+
+    const handleDowntimeChange = (unit, value) => {
+        const numVal = Math.max(0, parseInt(value, 10) || 0);
+        setFormData(prev => ({
+            ...prev,
+            downtime: {
+                ...prev.downtime,
+                [unit]: numVal
+            }
         }));
     };
 
     const handleApplyChanges = (e) => {
-        // Prevent page reload on submit and only save if all validation checks passed.
         e.preventDefault();
         if (isFormValid) {
             setOriginalData(formData);
@@ -97,200 +84,203 @@ const MissionForm = ({ role }) => {
         setErrors({});
     };
 
+    const formatDowntime = (dt) => {
+        return `${String(dt.hours).padStart(2, '0')}h ${String(dt.minutes).padStart(2, '0')}m ${String(dt.seconds).padStart(2, '0')}s`;
+    };
+
+    const activeModesList = Object.entries(originalData.modes)
+        .filter(([_, active]) => active)
+        .map(([name]) => name)
+        .join(', ') || 'None';
+
     if (!isEditing) {
         return (
             <div className="mission-summary">
-                <div className="form-section-divider">Mission Profile</div>
-                <div className="summary-row"><span className="summary-label">Mission ID:</span> <span className="summary-val">{originalData.missionId}</span></div>
-                <div className="summary-row"><span className="summary-label">Satellite Nickname:</span> <span className="summary-val">{originalData.satelliteNickname}</span></div>
-                <div className="summary-row"><span className="summary-label">Mission Mode:</span> <span className="summary-val">{originalData.missionMode}</span></div>
-                <div className="summary-row"><span className="summary-label">Target Orbit:</span> <span className="summary-val">{originalData.targetOrbit}</span></div>
+                {selectedPass && (
+                    <div style={{
+                        background: 'rgba(0, 207, 255, 0.08)',
+                        border: '1px solid #0df',
+                        padding: '12px',
+                        borderRadius: '4px',
+                        marginBottom: '15px'
+                    }}>
+                        <div style={{ color: '#0df', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                            NEXT PASS
+                        </div>
+                        <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#fff', marginTop: '2px' }}>
+                            {selectedPass.satellite}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#8892b0', fontFamily: 'var(--font-mono)' }}>
+                            {selectedPass.time} • {selectedPass.location}
+                        </div>
+                    </div>
+                )}
 
-                <div className="form-section-divider">RF Configuration</div>
-                <div className="summary-row"><span className="summary-label">Uplink (MHz):</span> <span className="summary-val">{originalData.uplinkFrequency}</span></div>
-                <div className="summary-row"><span className="summary-label">Downlink (MHz):</span> <span className="summary-val">{originalData.downlinkFrequency}</span></div>
-                <div className="summary-row"><span className="summary-label">Bandwidth:</span> <span className="summary-val">{originalData.bandwidth}</span></div>
-                <div className="summary-row"><span className="summary-label">Modulation:</span> <span className="summary-val">{originalData.modulation}</span></div>
-                <div className="summary-row"><span className="summary-label">Transmit Power:</span> <span className="summary-val">{originalData.transmitPower}%</span></div>
-
-                <div className="form-section-divider">Power & Safety</div>
-                <div className="summary-row"><span className="summary-label">Battery Warning:</span> <span className="summary-val">{originalData.batteryWarning}%</span></div>
-                <div className="summary-row"><span className="summary-label">Critical Battery:</span> <span className="summary-val">{originalData.criticalBattery}%</span></div>
-                <div className="summary-row"><span className="summary-label">Temp Warning:</span> <span className="summary-val">{originalData.tempWarning}°C</span></div>
-                <div className="summary-row"><span className="summary-label">Safe Mode Trigger:</span> <span className="summary-val">{originalData.safeModeTrigger}</span></div>
-
-                <div className="form-section-divider">Payload Config</div>
-                <div className="summary-row"><span className="summary-label">SSTV Priority:</span> <span className="summary-val">{originalData.sstvPriority}</span></div>
-                <div className="summary-row"><span className="summary-label">Max SSTV Size:</span> <span className="summary-val">{originalData.maxSstvSize} KB</span></div>
-
-                <div className="form-section-divider">Ground Station</div>
-                <div className="summary-row"><span className="summary-label">Station ID:</span> <span className="summary-val">{originalData.gsId}</span></div>
-                <div className="summary-row"><span className="summary-label">Comm Window:</span> <span className="summary-val">{originalData.commWindow} mins</span></div>
+                <div className="form-section-divider">RF CONFIGURATION</div>
+                <div className="summary-row">
+                    <span className="summary-label">Frequency:</span> 
+                    <span className="summary-val">{originalData.frequency} MHz</span>
+                </div>
+                <div className="summary-row">
+                    <span className="summary-label">Bandwidth:</span> 
+                    <span className="summary-val">{originalData.bandwidth}</span>
+                </div>
+                <div className="summary-row">
+                    <span className="summary-label">Active Modes:</span> 
+                    <span className="summary-val" style={{ color: '#0df' }}>{activeModesList}</span>
+                </div>
+                <div className="summary-row">
+                    <span className="summary-label">Transmit Power:</span> 
+                    <span className="summary-val">{originalData.transmitPower}%</span>
+                </div>
+                <div className="summary-row">
+                    <span className="summary-label">Downtime Window:</span> 
+                    <span className="summary-val">{formatDowntime(originalData.downtime)}</span>
+                </div>
 
                 <div className="form-actions" style={{ marginTop: "20px" }}>
-                    {/* Hide the edit button for read-only users to prevent unauthorized changes */}
                     {role === "Admin" ? (
-                        <button type="button" className="btn-primary" onClick={() => setIsEditing(true)}>Edit Configuration</button>
+                        <button type="button" className="btn-primary" onClick={() => setIsEditing(true)}>
+                            EDIT CONFIGURATION
+                        </button>
                     ) : (
-                        <p style={{ color: '#ffb86c' }}>Administrator privileges required to edit configuration.</p>
+                        <p style={{ color: '#ffb86c', fontSize: '0.85em', margin: 0 }}>
+                            Student Mode: Administrator privileges required to edit RF configuration.
+                        </p>
                     )}
                 </div>
             </div>
         );
     }
 
+    // INLAY EDIT MODE
     return (
         <form className="mission-form" onSubmit={handleApplyChanges}>
-            <div className="form-section-divider">Mission Profile</div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Mission ID</label>
-                    <input type="text" name="missionId" value={formData.missionId} onChange={handleChange} />
-                    {errors.missionId && <span className="error-msg">{errors.missionId}</span>}
-                </div>
-                <div className="form-group">
-                    <label>Satellite Nickname</label>
-                    <input type="text" name="satelliteNickname" value={formData.satelliteNickname} onChange={handleChange} />
-                    {errors.satelliteNickname && <span className="error-msg">{errors.satelliteNickname}</span>}
-                </div>
-            </div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Mission Mode</label>
-                    <select name="missionMode" value={formData.missionMode} onChange={handleChange}>
-                        <option value="Nominal">Nominal</option>
-                        <option value="Safe">Safe Mode</option>
-                        <option value="Recovery">Recovery</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Target Orbit</label>
-                    <select name="targetOrbit" value={formData.targetOrbit} onChange={handleChange}>
-                        <option value="LEO">LEO</option>
-                        <option value="MEO">MEO</option>
-                        <option value="GEO">GEO</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="form-section-divider">RF Configuration</div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Uplink Freq (MHz)</label>
-                    <input type="text" name="uplinkFrequency" value={formData.uplinkFrequency} onChange={handleChange} />
-                    {errors.uplinkFrequency && <span className="error-msg">{errors.uplinkFrequency}</span>}
-                </div>
-                <div className="form-group">
-                    <label>Downlink Freq (MHz)</label>
-                    <input type="text" name="downlinkFrequency" value={formData.downlinkFrequency} onChange={handleChange} />
-                    {errors.downlinkFrequency && <span className="error-msg">{errors.downlinkFrequency}</span>}
-                </div>
-            </div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Bandwidth</label>
-                    <select name="bandwidth" value={formData.bandwidth} onChange={handleChange}>
-                        <option value="12.5kHz">12.5kHz</option>
-                        <option value="25.0kHz">25.0kHz</option>
-                        <option value="19.2kHz">19.2kHz</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Modulation</label>
-                    <select name="modulation" value={formData.modulation} onChange={handleChange}>
-                        <option value="FSK">FSK</option>
-                        <option value="BPSK">BPSK</option>
-                        <option value="QPSK">QPSK</option>
-                    </select>
-                </div>
-            </div>
+            <div className="form-section-divider">EDIT RF CONFIGURATION</div>
+            
             <div className="form-group">
-                <label>Transmit Power: {formData.transmitPower}%</label>
-                <input type="range" name="transmitPower" min="0" max="100" value={formData.transmitPower} onChange={handleChange} />
+                <label>Frequency (MHz)</label>
+                <input 
+                    type="text" 
+                    name="frequency" 
+                    value={formData.frequency} 
+                    onChange={handleTextChange} 
+                />
+                {errors.frequency && <span className="error-msg">{errors.frequency}</span>}
             </div>
 
-            <div className="form-section-divider">Power & Safety</div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Battery Warning (%)</label>
-                    <input type="number" name="batteryWarning" value={formData.batteryWarning} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label>Critical Battery (%)</label>
-                    <input type="number" name="criticalBattery" value={formData.criticalBattery} onChange={handleChange} />
-                </div>
-            </div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Temp Warning (°C)</label>
-                    <input type="number" name="tempWarning" value={formData.tempWarning} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label>Safe Mode Trigger</label>
-                    <select name="safeModeTrigger" value={formData.safeModeTrigger} onChange={handleChange}>
-                        <option value="Battery">Battery</option>
-                        <option value="Temperature">Temperature</option>
-                        <option value="Signal">Signal Loss</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="form-section-divider">Payload Config</div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>SSTV Priority</label>
-                    <select name="sstvPriority" value={formData.sstvPriority} onChange={handleChange}>
-                        <option value="Critical">Critical</option>
-                        <option value="High">High</option>
-                        <option value="Normal">Normal</option>
-                        <option value="Low">Low</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Max SSTV Size (KB)</label>
-                    <input type="number" name="maxSstvSize" value={formData.maxSstvSize} onChange={handleChange} />
-                </div>
-            </div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>M17 Priority</label>
-                    <select name="m17Priority" value={formData.m17Priority} onChange={handleChange}>
-                        <option value="Normal">Normal</option>
-                        <option value="Low">Low</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Codec2 Priority</label>
-                    <select name="codec2Priority" value={formData.codec2Priority} onChange={handleChange}>
-                        <option value="Normal">Normal</option>
-                        <option value="Low">Low</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="form-section-divider">Ground Station</div>
             <div className="form-group">
-                <label>GS ID</label>
-                <input type="text" name="gsId" value={formData.gsId} onChange={handleChange} />
-            </div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Latitude</label>
-                    <input type="text" name="gsLat" value={formData.gsLat} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label>Longitude</label>
-                    <input type="text" name="gsLon" value={formData.gsLon} onChange={handleChange} />
-                </div>
-            </div>
-            <div className="form-group">
-                <label>Comm Window (mins)</label>
-                <input type="number" name="commWindow" value={formData.commWindow} onChange={handleChange} />
+                <label>Bandwidth</label>
+                <select name="bandwidth" value={formData.bandwidth} onChange={handleTextChange}>
+                    <option value="12.5kHz">12.5kHz</option>
+                    <option value="25.0kHz">25.0kHz</option>
+                    <option value="19.2kHz">19.2kHz</option>
+                </select>
             </div>
 
-            <div className="form-actions">
-                <button type="submit" className="btn-primary" disabled={!isFormValid}>Apply Changes</button>
-                <button type="button" className="btn-secondary" onClick={handleCancel}>Cancel</button>
+            {/* MODE CONTROLS: M17, CODEC2, SSTV */}
+            <div className="form-group">
+                <label>Mode Controls</label>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                    {['M17', 'Codec2', 'SSTV'].map((m) => {
+                        const isOn = formData.modes[m];
+                        return (
+                            <button
+                                key={m}
+                                type="button"
+                                onClick={() => handleModeToggle(m)}
+                                style={{
+                                    flex: 1,
+                                    padding: '8px 10px',
+                                    background: isOn ? 'rgba(0, 207, 255, 0.15)' : '#08111f',
+                                    border: `1px solid ${isOn ? '#0df' : '#1a2b4c'}`,
+                                    color: isOn ? '#0df' : '#64748b',
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer',
+                                    fontWeight: isOn ? 'bold' : 'normal',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '2px'
+                                }}
+                            >
+                                <span style={{ fontSize: '0.7rem', color: isOn ? '#10b981' : '#64748b' }}>
+                                    {isOn ? '[ ON ]' : '[ OFF ]'}
+                                </span>
+                                <span>{m}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* DOWNTIME WINDOW DURATION (Hours / Minutes / Seconds) */}
+            <div className="form-group">
+                <label>Downtime Window Duration</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                    <div>
+                        <span style={{ fontSize: '0.75rem', color: '#8892b0', fontFamily: 'var(--font-mono)' }}>Hours</span>
+                        <input
+                            type="number"
+                            min="0"
+                            max="24"
+                            value={formData.downtime.hours}
+                            onChange={(e) => handleDowntimeChange('hours', e.target.value)}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                    <div>
+                        <span style={{ fontSize: '0.75rem', color: '#8892b0', fontFamily: 'var(--font-mono)' }}>Minutes</span>
+                        <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={formData.downtime.minutes}
+                            onChange={(e) => handleDowntimeChange('minutes', e.target.value)}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                    <div>
+                        <span style={{ fontSize: '0.75rem', color: '#8892b0', fontFamily: 'var(--font-mono)' }}>Seconds</span>
+                        <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={formData.downtime.seconds}
+                            onChange={(e) => handleDowntimeChange('seconds', e.target.value)}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* POWER SLIDER: LOW --------●-------- HIGH */}
+            <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label>Transmit Power: {formData.transmitPower}%</label>
+                    <span style={{ fontSize: '0.75rem', color: '#8892b0', fontFamily: 'var(--font-mono)' }}>
+                        {formData.transmitPower < 30 ? 'LOW' : formData.transmitPower > 70 ? 'HIGH' : 'MED'}
+                    </span>
+                </div>
+                <input 
+                    type="range" 
+                    name="transmitPower" 
+                    min="0" 
+                    max="100" 
+                    value={formData.transmitPower} 
+                    onChange={handleTextChange} 
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+                    <span>LOW</span>
+                    <span>MED</span>
+                    <span>HIGH</span>
+                </div>
+            </div>
+
+            <div className="form-actions" style={{ marginTop: '10px' }}>
+                <button type="submit" className="btn-primary" disabled={!isFormValid}>APPLY CHANGES</button>
+                <button type="button" className="btn-secondary" onClick={handleCancel}>CANCEL</button>
             </div>
         </form>
     );
