@@ -3,10 +3,13 @@ import { fetchLocalPayloads } from '../services/satelliteApi';
 
 const SYSTEM_PRIORITY = ['TT&C', 'Housekeeping'];
 
-const PayloadsPanel = ({ role }) => {
-    const [payloads, setPayloads] = useState([]);
-    const [loading, setLoading] = useState(true);
+const PayloadsPanel = ({ role, payloads: propsPayloads, setPayloads: propsSetPayloads }) => {
+    const [internalPayloads, setInternalPayloads] = useState([]);
+    const [loading, setLoading] = useState(!propsPayloads || propsPayloads.length === 0);
     const [error, setError] = useState(null);
+
+    const payloads = propsPayloads && propsPayloads.length > 0 ? propsPayloads : internalPayloads;
+    const setPayloads = propsSetPayloads || setInternalPayloads;
 
     const [activePayloadView, setActivePayloadView] = useState('QUEUED');
     
@@ -14,6 +17,10 @@ const PayloadsPanel = ({ role }) => {
     const [draggedItemId, setDraggedItemId] = useState(null);
 
     useEffect(() => {
+        if (propsPayloads && propsPayloads.length > 0) {
+            setLoading(false);
+            return;
+        }
         fetchLocalPayloads()
             .then(data => {
                 // Initial sort to ensure criticals are at top if they are queued
@@ -34,7 +41,7 @@ const PayloadsPanel = ({ role }) => {
                 setError(err.message);
                 setLoading(false);
             });
-    }, []);
+    }, [propsPayloads, setPayloads]);
 
     const filteredPayloads = useMemo(() => {
         return payloads.filter(payload => {

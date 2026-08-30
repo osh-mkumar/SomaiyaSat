@@ -28,7 +28,7 @@ export const validateOperatorName = (name) => {
 };
 
 export const validateSatelliteNickname = (nickname) => {
-    return /^[a-zA-Z0-9\-]+$/.test(nickname) && nickname.length > 0;
+    return /^[a-zA-Z0-9-]+$/.test(nickname) && nickname.length > 0;
 };
 
 export const validateCountry = (country) => {

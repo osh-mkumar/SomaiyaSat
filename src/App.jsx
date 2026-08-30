@@ -9,12 +9,26 @@ import TelemetryPanel from "./components/TelemetryPanel";
 import OrbitPanel from "./components/OrbitPanel";
 import PayloadsPanel from "./components/PayloadsPanel";
 import ExternalDataPanel from "./components/ExternalDataPanel";
-
 import PassSchedulingConsole from "./components/PassSchedulingConsole";
+import OverviewDashboard from "./components/OverviewDashboard";
+
+import { fetchLocalSatellites, fetchLocalPayloads } from "./services/satelliteApi";
 
 // ==========================================
 // CONSTANTS & INITIAL DATA
 // ==========================================
+
+const MAX_HISTORY = 30;
+
+const INITIAL_LIMITS = {
+  upperBattery: 100,
+  lowerBattery: 20,
+  criticalBattery: 15,
+  tempAlarm: 45,
+  refreshInterval: 2000,
+  highTempAlert: true,
+  lowBatteryAlert: true
+};
 
 const INITIAL_SCHEDULED_PASSES = [
   {
@@ -50,7 +64,12 @@ const TELEMETRY_METRICS = {
   primaryFrequencies: "Amateur HAM Bands",
 };
 
-const PAYLOAD_OPTIONS = ["TT&C", "SSTV", "Codec2", "M17"];
+const calculateStatus = (battery, signal, communication, limits) => {
+  if (battery <= (limits?.criticalBattery || 15) || signal < 30 || communication === "Offline") return "CRITICAL";
+  if ((battery > (limits?.criticalBattery || 15) && battery <= limits?.lowerBattery) || (signal >= 30 && signal < 60)) return "WARNING";
+  if (battery > limits?.lowerBattery && signal >= 60 && communication === "Online") return "NOMINAL";
+  return "UNKNOWN";
+};
 
 // ==========================================
 // HELPER FUNCTIONS
@@ -59,48 +78,6 @@ const PAYLOAD_OPTIONS = ["TT&C", "SSTV", "Codec2", "M17"];
 // ==========================================
 // SUB-COMPONENTS
 // ==========================================
-
-const Hero = () => (
-  <section className="sci-hero">
-    <div className="hero-badge">SOMAIYASAT & SOMAIYAPOD MISSION PROFILE</div>
-    <h1>Autonomous Inter-Satellite Data Routing & Payload System</h1>
-    <p className="hero-desc">
-      An onboard AI manager executing link-quality estimation, power budgeting,
-      and dynamic mode switching for PocketQube satellite operations.
-    </p>
-  </section>
-);
-
-const TechnicalParameters = () => (
-  <section className="sci-telemetry">
-    <h2>TECHNICAL PARAMETERS</h2>
-    <div className="telemetry-grid">
-      {Object.entries(TELEMETRY_METRICS).map(([key, value]) => (
-        <div className="telemetry-card" key={key}>
-          <span className="telemetry-key">{key.replace(/([A-Z])/g, " $1").toUpperCase()}</span>
-          <span className="telemetry-val">{value}</span>
-        </div>
-      ))}
-    </div>
-  </section>
-);
-
-const OverviewTab = () => (
-  <section className="sci-section">
-    <h3>01. System Architecture Overview</h3>
-    <p>
-      SomaiyaSat is a PocketQube satellite designed to demonstrate autonomous
-      communication scheduling and intelligent payload management. Operating
-      alongside SomaiyaPod, the spacecraft validates deployment, initializes
-      flight software, and begins telemetry transmission automatically.
-    </p>
-    <p>
-      The onboard AI continuously evaluates communication quality, available
-      battery power, and payload priorities to maximize data return during
-      limited ground station visibility windows.
-    </p>
-  </section>
-);
 
 const AiRoutingTab = () => {
     const [activeAIRoutingView, setActiveAIRoutingView] = useState('DECISION QUEUE');
@@ -240,12 +217,113 @@ const AiRoutingTab = () => {
 // ==========================================
 
 function App() {
-  const [activeTab, setActiveTab] = useState("mission"); // Default to 04 // COMMAND & CONFIG
+  // REQUIREMENT 4: Initial activeTab defaults to "overview"
+  const [activeTab, setActiveTab] = useState("overview");
   const [role, setRole] = useState("Admin");
   
   // Shared pass state
   const [scheduledPasses, setScheduledPasses] = useState(INITIAL_SCHEDULED_PASSES);
   const [selectedPass, setSelectedPass] = useState(INITIAL_SCHEDULED_PASSES[0]);
+
+  // Shared single-source-of-truth telemetry & limits state
+  const [satellites, setSatellites] = useState([]);
+  const [telemetryHistory, setTelemetryHistory] = useState({});
+  const [limits, setLimits] = useState(INITIAL_LIMITS);
+  const [payloads, setPayloads] = useState([]);
+
+  // Fetch initial telemetry and payloads data
+  useEffect(() => {
+    fetchLocalSatellites()
+      .then(data => {
+        setSatellites(data);
+        const initialHist = {};
+        data.forEach(sat => {
+          initialHist[sat.id] = {
+            battery: Array(MAX_HISTORY).fill(sat.battery),
+            signal: Array(MAX_HISTORY).fill(sat.signal),
+            temp: Array(MAX_HISTORY).fill(sat.temp),
+          };
+        });
+        setTelemetryHistory(initialHist);
+      })
+      .catch(err => {
+        console.warn("Failed to load satellite data, using fallback:", err.message);
+        const fallbackSats = [
+          { id: "SS-001", name: "SomaiyaSat-1", status: "Nominal", battery: 89, signal: 94, temp: 24.8, altitude: 504, communication: "Online" },
+          { id: "SS-002", name: "SomaiyaSat-2", status: "Warning", battery: 46, signal: 64, temp: 31.2, altitude: 500, communication: "Online" },
+          { id: "SS-003", name: "SomaiyaSat-3", status: "Critical", battery: 25, signal: 38, temp: 42.1, altitude: 461, communication: "Offline" }
+        ];
+        setSatellites(fallbackSats);
+      });
+
+    fetchLocalPayloads()
+      .then(data => {
+        setPayloads(data);
+      })
+      .catch(err => {
+        console.warn("Failed to load payload data, using fallback:", err.message);
+        setPayloads([
+          { id: "P001", name: "Housekeeping Telemetry", type: "TT&C", priority: "Critical", size: "12 KB", status: "Queued" },
+          { id: "P002", name: "Wide-Angle Earth Image", type: "SSTV", priority: "Normal", size: "45 KB", status: "Transmitting" },
+          { id: "P003", name: "Ham Radio Broadcast", type: "Codec2", priority: "Low", size: "8 KB", status: "Suspended" },
+          { id: "P004", name: "Experimental Data", type: "M17", priority: "Normal", size: "25 KB", status: "Queued" }
+        ]);
+      });
+  }, []);
+
+  // Single live telemetry update loop (shared by Overview, Telemetry, Command & Config)
+  useEffect(() => {
+    if (satellites.length === 0) return;
+
+    const interval = setInterval(() => {
+      setSatellites(prevSats => {
+        const nextSats = prevSats.map(sat => {
+          const batteryDelta = (Math.random() * 0.2 - 0.1);
+          const signalDelta = (Math.random() * 2 - 1);
+          const tempDelta = (Math.random() * 0.4 - 0.2);
+
+          const newBattery = Math.max(0, Math.min(100, sat.battery + batteryDelta));
+          const newSignal = Math.max(0, Math.min(100, sat.signal + signalDelta));
+          const newTemp = Math.max(-20, Math.min(80, sat.temp + tempDelta));
+          const newOrbit = sat.altitude + (Math.random() * 0.2 - 0.1);
+
+          return {
+            ...sat,
+            battery: newBattery,
+            signal: newSignal,
+            temp: newTemp,
+            altitude: newOrbit
+          };
+        });
+
+        setTelemetryHistory(prevHist => {
+          const nextHist = { ...prevHist };
+          nextSats.forEach(sat => {
+            const h = nextHist[sat.id];
+            if (h && h.battery) {
+              nextHist[sat.id] = {
+                battery: [...h.battery.slice(1), sat.battery],
+                signal: [...h.signal.slice(1), sat.signal],
+                temp: [...h.temp.slice(1), sat.temp],
+              };
+            }
+          });
+          return nextHist;
+        });
+
+        return nextSats;
+      });
+    }, limits.refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [satellites.length, limits.refreshInterval]);
+
+  const satellitesWithStatus = useMemo(() => {
+    return satellites.map(sat => ({
+      ...sat,
+      status: calculateStatus(sat.battery, sat.signal, sat.communication, limits)
+    }));
+  }, [satellites, limits]);
 
   return (
     <div className="app-container">
@@ -255,13 +333,29 @@ function App() {
         <main className="content-area">
           {activeTab !== 'mission' && (
             <div className="legacy-content-wrapper">
-              <Hero />
-              <TechnicalParameters />
-              <div className="sci-content">
-                {activeTab === "overview" && <OverviewTab />}
+              <div className="sci-content" style={{ padding: activeTab === 'overview' ? '25px' : '30px' }}>
+                {activeTab === "overview" && (
+                  <OverviewDashboard
+                    satellites={satellitesWithStatus}
+                    selectedPass={selectedPass}
+                    scheduledPasses={scheduledPasses}
+                    payloads={payloads}
+                    setActiveTab={setActiveTab}
+                    telemetryMetrics={TELEMETRY_METRICS}
+                  />
+                )}
                 {activeTab === "ai" && <AiRoutingTab />}
-                {activeTab === "payloads" && <PayloadsPanel role={role} />}
-                {activeTab === "telemetry" && <TelemetryPanel role={role} selectedPass={selectedPass} />}
+                {activeTab === "payloads" && <PayloadsPanel role={role} payloads={payloads} setPayloads={setPayloads} />}
+                {activeTab === "telemetry" && (
+                  <TelemetryPanel
+                    role={role}
+                    selectedPass={selectedPass}
+                    satellites={satellitesWithStatus}
+                    history={telemetryHistory}
+                    limits={limits}
+                    setLimits={setLimits}
+                  />
+                )}
                 {activeTab === "passes" && (
                   <PassSchedulingConsole
                     role={role}
@@ -279,7 +373,15 @@ function App() {
           {activeTab === 'mission' && (
             <div className="mission-dashboard-grid">
               <RFPanel role={role} selectedPass={selectedPass} />
-              <TelemetryPanel role={role} compact={true} selectedPass={selectedPass} />
+              <TelemetryPanel
+                role={role}
+                compact={true}
+                selectedPass={selectedPass}
+                satellites={satellitesWithStatus}
+                history={telemetryHistory}
+                limits={limits}
+                setLimits={setLimits}
+              />
               <OrbitPanel selectedPass={selectedPass} />
             </div>
           )}

@@ -64,10 +64,18 @@ const ProgressBar = ({ value, color }) => {
     );
 };
 
-const TelemetryPanel = ({ role, compact = false, selectedPass, limits = INITIAL_LIMITS, setLimits }) => {
-    const [satellites, setSatellites] = useState([]);
-    const [history, setHistory] = useState({});
-    const [loading, setLoading] = useState(true);
+const TelemetryPanel = ({
+    role,
+    compact = false,
+    selectedPass,
+    limits = INITIAL_LIMITS,
+    setLimits,
+    satellites: propsSatellites,
+    history: propsHistory
+}) => {
+    const [internalSatellites, setInternalSatellites] = useState([]);
+    const [internalHistory, setInternalHistory] = useState({});
+    const [loading, setLoading] = useState(!propsSatellites || propsSatellites.length === 0);
     const [error, setError] = useState(null);
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -81,10 +89,19 @@ const TelemetryPanel = ({ role, compact = false, selectedPass, limits = INITIAL_
     const activeLimits = limits || internalLimits;
     const updateLimits = setLimits || setInternalLimits;
 
+    // Use props if passed, otherwise use internal state
+    const satellites = propsSatellites && propsSatellites.length > 0 ? propsSatellites : internalSatellites;
+    const history = propsHistory && Object.keys(propsHistory).length > 0 ? propsHistory : internalHistory;
+
     useEffect(() => {
+        if (propsSatellites && propsSatellites.length > 0) {
+            setLoading(false);
+            return;
+        }
+
         fetchLocalSatellites()
             .then(data => {
-                setSatellites(data);
+                setInternalSatellites(data);
                 
                 const initialHistory = {};
                 data.forEach(sat => {
@@ -94,7 +111,7 @@ const TelemetryPanel = ({ role, compact = false, selectedPass, limits = INITIAL_
                         temp: Array(MAX_HISTORY).fill(sat.temp),
                     };
                 });
-                setHistory(initialHistory);
+                setInternalHistory(initialHistory);
                 setLoading(false);
             })
             .catch(err => {
@@ -102,11 +119,13 @@ const TelemetryPanel = ({ role, compact = false, selectedPass, limits = INITIAL_
                 setError(err.message);
                 setLoading(false);
             });
-    }, []);
+    }, [propsSatellites]);
 
     useEffect(() => {
+        if (propsSatellites && propsSatellites.length > 0) return; // When using parent state, parent drives update
+
         const interval = setInterval(() => {
-            setSatellites(prevSats => {
+            setInternalSatellites(prevSats => {
                 const nextSats = prevSats.map(sat => {
                     const batteryDelta = (Math.random() * 0.2 - 0.1);
                     const signalDelta = (Math.random() * 2 - 1);
@@ -127,7 +146,7 @@ const TelemetryPanel = ({ role, compact = false, selectedPass, limits = INITIAL_
                     };
                 });
 
-                setHistory(prevHist => {
+                setInternalHistory(prevHist => {
                     const nextHist = { ...prevHist };
                     nextSats.forEach(sat => {
                         const h = nextHist[sat.id];
@@ -148,7 +167,7 @@ const TelemetryPanel = ({ role, compact = false, selectedPass, limits = INITIAL_
         }, activeLimits.refreshInterval);
 
         return () => clearInterval(interval);
-    }, [activeLimits.refreshInterval]);
+    }, [propsSatellites, activeLimits.refreshInterval]);
 
     const satellitesWithStatus = useMemo(() => {
         return satellites.map(sat => ({
