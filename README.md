@@ -1,57 +1,176 @@
-# SomaiyaSat & SomaiyaPod Mission Profile
+# 🛰️ SomaiyaSat & SomaiyaPod Mission Control
 
-**Autonomous Inter-Satellite Data Routing & Payload System**
+> **Autonomous Inter-Satellite Data Routing, Telemetry Monitoring & Express.js Ground Station Control**
 
-SomaiyaSat is a PocketQube satellite designed to demonstrate autonomous communication scheduling and intelligent payload management. Operating alongside SomaiyaPod, the spacecraft validates deployment, initializes flight software, and begins telemetry transmission automatically.
+[![React 19](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react)](https://react.dev)
+[![Vite 8](https://img.shields.io/badge/Vite-8.2-646CFF?style=flat-square&logo=vite)](https://vitejs.dev)
+[![Express 5](https://img.shields.io/badge/Express-5.2-000000?style=flat-square&logo=express)](https://expressjs.com)
+[![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](#license)
 
-The onboard AI continuously evaluates communication quality, available battery power, and payload priorities to maximize data return during limited ground station visibility windows.
+**SomaiyaSat (KJS-SRS-01)** is a PocketQube satellite (5cm form factor) designed for Low Earth Orbit (LEO) demonstration of autonomous inter-satellite communication routing, telemetry streaming, and dynamic radio payload management. 
 
-## Technical Parameters
+This repository houses the complete **Mission Control Application**, combining a high-performance React 19 single-page dashboard with a modular **Express.js REST API** backend for persistent pass scheduling, payload queueing, satellite telemetry, and RF transceiver configurations.
 
-- **Mission ID**: KJS-SRS-01
-- **Orbit**: Low Earth Orbit (LEO)
-- **Form Factor**: PocketQube (5cm Unit)
-- **Power Budget**: < 1.0W Average
-- **AI Subsystem**: Decision Tree / Policy Agent
-- **Primary Frequencies**: Amateur HAM Bands
+---
 
-## Key Features
+## 🚀 What the Project Does
 
-1. **Autonomous Routing Engine**: The onboard scheduler determines which subsystem should receive communication bandwidth based on battery percentage, signal quality, queue urgency, and mission objectives.
-2. **Dynamic Mode Switching**: e.g., if Battery < 25%, enables power saving and suspends imaging.
-3. **Payload Operations**: Priority scheduling for TT&C (Housekeeping), SSTV (Image Downlink), Codec2 (Voice), and M17 (Digital Communication).
+The SomaiyaSat Mission Control platform provides space engineers and students with an interactive ground control system to:
 
-## Tech Stack
-- **Frontend**: React 19, Vite
-- **Data Fetching**: Axios
-- **Mock Backend**: `json-server` for local telemetry and payload data
-- **External API**: Integration with ISS tracking API for orbit visualization.
+- **Monitor Telemetry**: Track real-time satellite battery levels, signal strength, temperature, and orbit degradation with live sparkline history.
+- **Schedule Ground Station Passes**: Compute and store upcoming orbital pass windows using structured inputs or natural language coordinate strings (e.g., `19.0760 N, 72.8777 E tomorrow at 4pm`).
+- **Manage Radio Payloads**: Control bandwidth allocation and priority queues across TT&C, SSTV (Image Downlink), Codec2 (Voice), and M17 digital modes.
+- **Configure RF Transceivers**: Remotely tune uplink/downlink frequencies, transmit power limits, and operational downtime windows.
+- **Track External Spacecraft**: Visualize real-time live ISS (International Space Station) orbital telemetry fetched from public REST endpoints.
 
-## Getting Started
+---
 
-1. Install dependencies:
+## ✨ Why the Project is Useful
+
+- **Autonomous Routing Engine**: Simulates onboard AI policy agents that adjust payload priority dynamically based on battery reserve and signal degradation.
+- **Role-Based Operational Safety**: Implements Admin (full read-write ground command authority) and Student (read-only telemetry monitoring) modes.
+- **Modular Express Architecture**: Built using decoupled Express.js routes, custom validation middleware, and structured JSON error handlers suitable for third-year computer engineering & aerospace lab studies (Experiment No. 06).
+- **Dual API Demonstration**: Seamlessly integrates local mission REST services alongside third-party public satellite APIs.
+
+---
+
+## 🛠️ Architecture & Tech Stack
+
+```
+SomaiyaSat Mission Control
+├── Frontend (Port 5173)    ──> React 19 + Vite + Axios / Fetch + Vanilla CSS
+└── Express Backend (Port 3000) ──> Express 5 + CORS + Modular Routers + JSON Persistence
+```
+
+### Core Technologies
+
+- **Frontend**: React 19, Vite 8, JavaScript (ES6+/JSX), Vanilla CSS (Cyberpunk/Sci-Fi aesthetics), Axios & native Fetch.
+- **Backend**: Node.js, Express.js (CommonJS `.cjs`), CORS middleware.
+- **Data Persistence**: Lightweight JSON database engine (`server/data/db.json`).
+
+---
+
+## 📦 Getting Started
+
+### Prerequisites
+
+Ensure you have **Node.js** (v18.0.0 or higher) and **npm** installed on your system.
+
+```bash
+node -v
+npm -v
+```
+
+### Installation
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/osh-mkumar/SomaiyaSat.git
+   cd SomaiyaSat
+   ```
+
+2. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-2. Run the development server (runs both Vite frontend and json-server mock backend):
-   ```bash
-   npm run dev
-   ```
+### Running the Application
 
-3. The app will be available at `http://localhost:5173`. The mock API runs on `http://localhost:3001`.
+Launch both the **Vite Frontend** (`http://localhost:5173`) and the **Express Backend** (`http://localhost:3000`) concurrently:
 
-## UI Components Overview
-- **TopBar**: User authentication/role management (Admin, User, etc.).
-- **Sidebar**: Navigation between the Mission Dashboard, Telemetry, Payloads, External Data, and AI Routing engine tabs.
-- **Mission Dashboard Grid**: Contains real-time overview via `RFPanel`, `TelemetryPanel`, and `OrbitPanel`.
-- **Payloads Panel**: Visualizes queue and payload execution status.
-- **External Data Panel**: Pulls and displays external satellite data (like ISS positions).
+```bash
+npm run dev
+```
 
-## Scripts
+Terminal output confirm services:
+```
+[0] VITE v8.2.0 ready in 150 ms
+[0] ➜ Local: http://localhost:5173/
+[1] SomaiyaSat Express API running on port 3000
+```
 
-- `npm run dev`: Starts the React app and JSON mock server concurrently.
-- `npm run build`: Builds the app for production.
-- `npm run lint`: Runs Oxlint.
-- `npm run preview`: Previews the production build.
-- `npm run api`: Starts the JSON server independently.
+---
+
+## 📡 Express API Endpoints Reference
+
+The backend exposes the following modular REST endpoints under `/api`:
+
+| Method | Endpoint | Description | Validation / Payload |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/` | API status check | Returns `{ success: true, message: ... }` |
+| **GET** | `/api/satellites` | List all satellites | Array of satellite records |
+| **GET** | `/api/satellites/:id` | Fetch specific satellite | Satellite object by ID |
+| **POST** | `/api/satellites` | Create satellite record | Requires `name`, `battery` (0-100), `signal` (0-100), `temp`, `orbit` |
+| **PUT** | `/api/satellites/:id` | Update satellite record | Validates updated satellite attributes |
+| **DELETE**| `/api/satellites/:id` | Delete satellite record | Removes satellite from database |
+| **GET** | `/api/payloads` | List payload queue | Array of active payloads |
+| **POST** | `/api/payloads` | Create payload record | Requires `name`, `type`, `priority`, `size`, `status` |
+| **GET** | `/api/passes` | List scheduled passes | Array of scheduled pass windows |
+| **POST** | `/api/passes` | Schedule pass | Validates coordinates (Lat -90..90, Lon -180..180) and time |
+| **DELETE**| `/api/passes/:id` | Cancel scheduled pass | Removes pass from schedule |
+| **GET** | `/api/config` | Get RF configuration | Transceiver frequency, bandwidth, power, downtime |
+| **PUT** | `/api/config` | Update RF configuration | Validates frequency limits and power budget |
+
+---
+
+## 💻 Available Scripts
+
+- `npm run dev`: Runs Vite frontend and Express server concurrently.
+- `npm run server`: Runs the Express backend server independently on port `3000`.
+- `npm run build`: Compiles production bundle using Vite.
+- `npm run lint`: Runs code quality checks using `oxlint`.
+- `npm run preview`: Previews the production build locally.
+
+---
+
+## 📁 Repository Structure
+
+```
+SomaiyaSat/
+├── server/
+│   ├── app.cjs                 # Express app initialization & error handling
+│   ├── data/
+│   │   └── db.json             # JSON database store
+│   ├── middleware/
+│   │   ├── validation.cjs      # Request payload validation middleware
+│   │   └── errorHandler.cjs    # 400, 404, 500 error response handlers
+│   ├── routes/
+│   │   ├── satellites.cjs      # Satellite CRUD router
+│   │   ├── payloads.cjs        # Payload manager router
+│   │   ├── passes.cjs          # Pass scheduling router
+│   │   └── config.cjs          # RF configuration router
+│   └── utils/
+│       └── database.cjs        # JSON read/write persistence helper
+├── src/
+│   ├── components/             # React dashboard UI components
+│   ├── services/
+│   │   └── satelliteApi.js     # Axios / Fetch API client layer
+│   ├── utils/
+│   │   └── Validation.js       # Client-side input validators
+│   ├── App.jsx                 # Application root & tab layout
+│   └── App.css                 # Cyberpunk UI design system
+├── package.json
+└── vite.config.js
+```
+
+---
+
+## 🤝 Contributing & Maintainers
+
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the project repository.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+### Maintainer
+
+Developed for the **SomaiyaSat Space Team** mission control division.
+
+---
+
+## 📄 License
+
+This project is open-source and available under the [MIT License](LICENSE).
