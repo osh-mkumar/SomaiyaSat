@@ -101,10 +101,15 @@ const TelemetryPanel = ({
 
         fetchLocalSatellites()
             .then(data => {
-                setInternalSatellites(data);
+                const sats = Array.isArray(data) ? data.map(sat => ({
+                    ...sat,
+                    temp: sat.temp !== undefined ? sat.temp : sat.temperature || 25,
+                    altitude: sat.altitude !== undefined ? sat.altitude : sat.orbit || 500
+                })) : [];
+                setInternalSatellites(sats);
                 
                 const initialHistory = {};
-                data.forEach(sat => {
+                sats.forEach(sat => {
                     initialHistory[sat.id] = {
                         battery: Array(MAX_HISTORY).fill(sat.battery),
                         signal: Array(MAX_HISTORY).fill(sat.signal),
@@ -115,7 +120,7 @@ const TelemetryPanel = ({
                 setLoading(false);
             })
             .catch(err => {
-                console.error("Failed to load satellite data:", err);
+                console.error("Failed to load satellite data from Express API:", err);
                 setError(err.message);
                 setLoading(false);
             });

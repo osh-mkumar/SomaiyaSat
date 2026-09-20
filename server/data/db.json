@@ -1,0 +1,146 @@
+{
+  "satellites": [
+    {
+      "id": "SAT-001",
+      "name": "SomaiyaSat-1",
+      "status": "Nominal",
+      "battery": 89,
+      "signal": 94,
+      "temp": 24.8,
+      "orbit": 504,
+      "communication": "Online"
+    },
+    {
+      "id": "SAT-002",
+      "name": "SomaiyaSat-2",
+      "status": "Warning",
+      "battery": 46,
+      "signal": 64,
+      "temp": 31.2,
+      "orbit": 500,
+      "communication": "Online"
+    },
+    {
+      "id": "SAT-003",
+      "name": "SomaiyaSat-3",
+      "status": "Critical",
+      "battery": 25,
+      "signal": 38,
+      "temp": 42.1,
+      "orbit": 461,
+      "communication": "Offline"
+    },
+    {
+      "id": "SAT-004",
+      "name": "SomaiyaSat-4",
+      "status": "Nominal",
+      "battery": 95,
+      "signal": 88,
+      "temp": 22.5,
+      "orbit": 510,
+      "communication": "Online"
+    },
+    {
+      "id": "SAT-005",
+      "name": "SomaiyaSat-4",
+      "status": "Nominal",
+      "battery": 95,
+      "signal": 88,
+      "temp": 22.5,
+      "orbit": 510,
+      "communication": "Online"
+    }
+  ],
+  "payloads": [
+    {
+      "id": "PAY-001",
+      "name": "Housekeeping Telemetry",
+      "type": "TT&C",
+      "priority": "Critical",
+      "size": 12,
+      "status": "Queued"
+    },
+    {
+      "id": "PAY-002",
+      "name": "Wide-Angle Earth Image",
+      "type": "SSTV",
+      "priority": "Normal",
+      "size": 45,
+      "status": "Transmitting"
+    },
+    {
+      "id": "PAY-003",
+      "name": "Ham Radio Broadcast",
+      "type": "Codec2",
+      "priority": "Low",
+      "size": 8,
+      "status": "Suspended"
+    },
+    {
+      "id": "PAY-004",
+      "name": "Experimental Data",
+      "type": "M17",
+      "priority": "Normal",
+      "size": 25,
+      "status": "Queued"
+    }
+  ],
+  "passes": [
+    {
+      "id": "PASS-001",
+      "satellite": "SomaiyaSat-1",
+      "latitude": 19.076,
+      "longitude": 72.8777,
+      "scheduledTime": "16:00 UTC",
+      "status": "Scheduled"
+    },
+    {
+      "id": "PASS-002",
+      "satellite": "SomaiyaSat-2",
+      "latitude": 28.6139,
+      "longitude": 77.209,
+      "scheduledTime": "18:30 UTC",
+      "status": "Scheduled"
+    },
+    {
+      "id": "PASS-1811",
+      "satellite": "SomaiyaSat-1",
+      "latitude": 19.076,
+      "longitude": 72.8777,
+      "location": "19.0760° N, 72.8777° E",
+      "scheduledTime": "17:00 UTC",
+      "time": "17:00 UTC",
+      "date": "2026-09-20",
+      "status": "Scheduled",
+      "createdAt": "2026-09-20T08:16:21.811Z"
+    },
+    {
+      "id": "PASS-8737",
+      "satellite": "SomaiyaSat-1",
+      "latitude": 19.076,
+      "longitude": 72.8777,
+      "location": "19.0760° N, 72.8777° E",
+      "scheduledTime": "17:00 UTC",
+      "time": "17:00 UTC",
+      "date": "2026-09-20",
+      "status": "Scheduled",
+      "createdAt": "2026-09-20T08:24:38.737Z"
+    }
+  ],
+  "config": {
+    "frequency": 437.5,
+    "bandwidth": "12.5kHz",
+    "activeMode": "M17",
+    "modes": {
+      "M17": true,
+      "Codec2": false,
+      "SSTV": false
+    },
+    "transmitPower": 75,
+    "downtime": {
+      "hours": 0,
+      "minutes": 15,
+      "seconds": 0
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getConfig, updateConfig } from '../services/satelliteApi';
 import {
     validateFrequency
 } from '../utils/Validation';
@@ -26,6 +27,27 @@ const MissionForm = ({ role, selectedPass }) => {
     const [formData, setFormData] = useState(INITIAL_DATA);
     const [errors, setErrors] = useState({});
     const [isFormValid, setIsFormValid] = useState(true);
+
+    // Fetch initial RF configuration from Express API
+    useEffect(() => {
+        getConfig()
+            .then(data => {
+                if (data && Object.keys(data).length > 0) {
+                    const loadedConfig = {
+                        frequency: String(data.frequency || '437.450'),
+                        bandwidth: data.bandwidth || '12.5kHz',
+                        modes: data.modes || { M17: true, Codec2: false, SSTV: false },
+                        transmitPower: data.transmitPower !== undefined ? data.transmitPower : 50,
+                        downtime: data.downtime || { hours: 0, minutes: 15, seconds: 0 }
+                    };
+                    setOriginalData(loadedConfig);
+                    setFormData(loadedConfig);
+                }
+            })
+            .catch(err => {
+                console.warn("Failed to load RF config from Express API:", err);
+            });
+    }, []);
 
     useEffect(() => {
         if (!isEditing) return;
@@ -70,11 +92,20 @@ const MissionForm = ({ role, selectedPass }) => {
         }));
     };
 
-    const handleApplyChanges = (e) => {
+    const handleApplyChanges = async (e) => {
         e.preventDefault();
         if (isFormValid) {
-            setOriginalData(formData);
-            setIsEditing(false);
+            try {
+                const apiRes = await updateConfig(formData);
+                const updatedData = apiRes.data || formData;
+                setOriginalData(updatedData);
+                setIsEditing(false);
+            } catch (err) {
+                console.error("Failed to update RF config via Express API:", err);
+                // Fallback to local save if API fails
+                setOriginalData(formData);
+                setIsEditing(false);
+            }
         }
     };
 

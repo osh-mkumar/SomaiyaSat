@@ -234,10 +234,15 @@ function App() {
   // Fetch initial telemetry and payloads data
   useEffect(() => {
     fetchLocalSatellites()
-      .then(data => {
-        setSatellites(data);
+      .then(resData => {
+        const data = Array.isArray(resData) ? resData : (resData?.data || []);
+        const formattedSats = data.map(sat => ({
+          ...sat,
+          altitude: sat.altitude !== undefined ? sat.altitude : (sat.orbit || 500)
+        }));
+        setSatellites(formattedSats);
         const initialHist = {};
-        data.forEach(sat => {
+        formattedSats.forEach(sat => {
           initialHist[sat.id] = {
             battery: Array(MAX_HISTORY).fill(sat.battery),
             signal: Array(MAX_HISTORY).fill(sat.signal),
@@ -257,7 +262,8 @@ function App() {
       });
 
     fetchLocalPayloads()
-      .then(data => {
+      .then(resData => {
+        const data = Array.isArray(resData) ? resData : (resData?.data || []);
         setPayloads(data);
       })
       .catch(err => {
@@ -273,10 +279,11 @@ function App() {
 
   // Single live telemetry update loop (shared by Overview, Telemetry, Command & Config)
   useEffect(() => {
-    if (satellites.length === 0) return;
+    if (!Array.isArray(satellites) || satellites.length === 0) return;
 
     const interval = setInterval(() => {
       setSatellites(prevSats => {
+        if (!Array.isArray(prevSats)) return [];
         const nextSats = prevSats.map(sat => {
           const batteryDelta = (Math.random() * 0.2 - 0.1);
           const signalDelta = (Math.random() * 2 - 1);
@@ -285,7 +292,8 @@ function App() {
           const newBattery = Math.max(0, Math.min(100, sat.battery + batteryDelta));
           const newSignal = Math.max(0, Math.min(100, sat.signal + signalDelta));
           const newTemp = Math.max(-20, Math.min(80, sat.temp + tempDelta));
-          const newOrbit = sat.altitude + (Math.random() * 0.2 - 0.1);
+          const currentAlt = sat.altitude !== undefined ? sat.altitude : (sat.orbit || 500);
+          const newOrbit = currentAlt + (Math.random() * 0.2 - 0.1);
 
           return {
             ...sat,
@@ -319,6 +327,7 @@ function App() {
   }, [satellites.length, limits.refreshInterval]);
 
   const satellitesWithStatus = useMemo(() => {
+    if (!Array.isArray(satellites)) return [];
     return satellites.map(sat => ({
       ...sat,
       status: calculateStatus(sat.battery, sat.signal, sat.communication, limits)

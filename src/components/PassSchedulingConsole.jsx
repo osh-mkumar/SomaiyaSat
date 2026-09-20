@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { getPasses, createPass, deletePass } from '../services/satelliteApi';
 import {
     validateLatitude,
     validateLongitude,
@@ -174,7 +175,28 @@ const PassSchedulingConsole = ({
         }));
     };
 
-    const handleSchedulePass = (e) => {
+    // Fetch passes from Express backend on component mount
+    useEffect(() => {
+        getPasses()
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                    const formattedPasses = data.map(p => ({
+                        ...p,
+                        location: p.location || `${Math.abs(p.latitude).toFixed(4)}° ${p.latitude >= 0 ? 'N' : 'S'}, ${Math.abs(p.longitude).toFixed(4)}° ${p.longitude >= 0 ? 'E' : 'W'}`,
+                        time: p.time || p.scheduledTime
+                    }));
+                    setScheduledPasses(formattedPasses);
+                    if (!selectedPass && formattedPasses.length > 0) {
+                        setSelectedPass(formattedPasses[0]);
+                    }
+                }
+            })
+            .catch(err => {
+                console.warn("Failed to load passes from Express API:", err);
+            });
+    }, []);
+
+    const handleSchedulePass = async (e) => {
         if (e) e.preventDefault();
 
         if (role !== "Admin") {
@@ -182,7 +204,7 @@ const PassSchedulingConsole = ({
             return;
         }
 
-        let newPass = null;
+        let newPassPayload = null;
 
         if (useStructured) {
             if (!validateStructured()) {
@@ -194,12 +216,13 @@ const PassSchedulingConsole = ({
             const formattedLon = `${Math.abs(lonNum).toFixed(4)}° ${lonNum >= 0 ? 'E' : 'W'}`;
             const formattedTime = `${structuredData.time} UTC`;
 
-            newPass = {
+            newPassPayload = {
                 id: `PASS-${Date.now().toString().slice(-4)}`,
                 satellite: structuredData.satelliteId,
                 location: `${formattedLat}, ${formattedLon}`,
                 latitude: latNum,
                 longitude: lonNum,
+                scheduledTime: formattedTime,
                 time: formattedTime,
                 date: structuredData.date,
                 status: 'Scheduled',
@@ -209,12 +232,13 @@ const PassSchedulingConsole = ({
             if (!parsedNlp.isValid) {
                 return;
             }
-            newPass = {
+            newPassPayload = {
                 id: `PASS-${Date.now().toString().slice(-4)}`,
                 satellite: parsedNlp.satelliteId,
                 location: `${parsedNlp.formattedLat}, ${parsedNlp.formattedLon}`,
                 latitude: parsedNlp.lat,
                 longitude: parsedNlp.lon,
+                scheduledTime: parsedNlp.time,
                 time: parsedNlp.time,
                 date: parsedNlp.date,
                 status: 'Scheduled',
@@ -222,30 +246,53 @@ const PassSchedulingConsole = ({
             };
         }
 
-        setScheduledPasses(prev => [newPass, ...prev]);
-        setSelectedPass(newPass);
-        setSuccessMessage({
-            title: "PASS SCHEDULED",
-            satellite: newPass.satellite,
-            location: newPass.location,
-            time: newPass.time,
-            status: newPass.status
-        });
+        try {
+            const apiRes = await createPass(newPassPayload);
+            const createdPass = apiRes.data || newPassPayload;
+            const finalPass = {
+                ...createdPass,
+                location: createdPass.location || `${Math.abs(createdPass.latitude).toFixed(4)}° ${createdPass.latitude >= 0 ? 'N' : 'S'}, ${Math.abs(createdPass.longitude).toFixed(4)}° ${createdPass.longitude >= 0 ? 'E' : 'W'}`,
+                time: createdPass.time || createdPass.scheduledTime
+            };
 
-        // Hide success banner after 6 seconds
-        setTimeout(() => {
-            setSuccessMessage(null);
-        }, 6000);
+            setScheduledPasses(prev => [finalPass, ...prev]);
+            setSelectedPass(finalPass);
+            setSuccessMessage({
+                title: "PASS SCHEDULED VIA EXPRESS API",
+                satellite: finalPass.satellite,
+                location: finalPass.location,
+                time: finalPass.time,
+                status: finalPass.status
+            });
+
+            setTimeout(() => {
+                setSuccessMessage(null);
+            }, 6000);
+        } catch (err) {
+            console.error("Failed to schedule pass via Express API:", err);
+            alert(`Error scheduling pass: ${err.response?.data?.error || err.message}`);
+        }
     };
 
-    const handleCancelPass = (passId) => {
+    const handleCancelPass = async (passId) => {
         if (role !== "Admin") {
             alert("Administrator privileges are required to cancel passes.");
             return;
         }
-        setScheduledPasses(prev => prev.filter(p => p.id !== passId));
-        if (selectedPass && selectedPass.id === passId) {
-            setSelectedPass(null);
+
+        try {
+            await deletePass(passId);
+            setScheduledPasses(prev => prev.filter(p => p.id !== passId));
+            if (selectedPass && selectedPass.id === passId) {
+                setSelectedPass(null);
+            }
+        } catch (err) {
+            console.error("Failed to delete pass via Express API:", err);
+            // Still update state locally if API returns error/not found
+            setScheduledPasses(prev => prev.filter(p => p.id !== passId));
+            if (selectedPass && selectedPass.id === passId) {
+                setSelectedPass(null);
+            }
         }
     };
 

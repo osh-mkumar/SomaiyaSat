@@ -4,14 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm run api\"",
+    "dev": "concurrently \"vite\" \"npm run server\"",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "api": "json-server --watch src/data/db.json --port 3001"
+    "server": "node server/app.cjs",
+    "api": "node server/app.cjs"
   },
   "dependencies": {
     "axios": "^1.19.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
