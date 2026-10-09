@@ -1,107 +1,127 @@
 const express = require('express');
 const router = express.Router();
-const { readDatabase, writeDatabase } = require('../utils/database.cjs');
+const Payload = require('../models/Payload.cjs');
 const { validatePayload } = require('../middleware/validation.cjs');
 
 // GET /api/payloads - List all payloads
-router.get('/', (req, res) => {
-    const db = readDatabase();
-    res.json({
-        success: true,
-        count: db.payloads.length,
-        data: db.payloads
-    });
+router.get('/', async (req, res, next) => {
+    try {
+        const payloads = await Payload.find().sort({ createdAt: 1 });
+        res.json({
+            success: true,
+            count: payloads.length,
+            data: payloads
+        });
+    } catch (err) {
+        next(err);
+    }
 });
 
 // GET /api/payloads/:id - Get a single payload by ID
-router.get('/:id', (req, res) => {
-    const db = readDatabase();
-    const payload = db.payloads.find(p => p.id === req.params.id);
+router.get('/:id', async (req, res, next) => {
+    try {
+        const payload = await Payload.findOne({ id: req.params.id });
 
-    if (!payload) {
-        return res.status(404).json({
-            success: false,
-            error: 'Payload not found'
+        if (!payload) {
+            return res.status(404).json({
+                success: false,
+                error: 'Payload not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: payload
         });
+    } catch (err) {
+        next(err);
     }
-
-    res.json({
-        success: true,
-        data: payload
-    });
 });
 
 // POST /api/payloads - Create a new payload
-router.post('/', validatePayload, (req, res) => {
-    const db = readDatabase();
-    const newId = req.body.id || `PAY-${String(db.payloads.length + 1).padStart(3, '0')}`;
+router.post('/', validatePayload, async (req, res, next) => {
+    try {
+        const count = await Payload.countDocuments();
+        const newId = req.body.id || `PAY-${String(count + 1).padStart(3, '0')}`;
 
-    const newPayload = {
-        id: newId,
-        name: req.body.name,
-        type: req.body.type,
-        priority: req.body.priority || 'Normal',
-        size: req.body.size,
-        status: req.body.status || 'Queued'
-    };
+        const newPayloadData = {
+            id: newId,
+            name: req.body.name,
+            type: req.body.type,
+            priority: req.body.priority || 'Normal',
+            size: req.body.size,
+            status: req.body.status || 'Queued'
+        };
 
-    db.payloads.push(newPayload);
-    writeDatabase(db);
+        const newPayload = await Payload.create(newPayloadData);
 
-    res.status(201).json({
-        success: true,
-        message: 'Payload created successfully',
-        data: newPayload
-    });
+        res.status(201).json({
+            success: true,
+            message: 'Payload created successfully',
+            data: newPayload
+        });
+    } catch (err) {
+        if (err.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                error: 'Payload with this ID already exists'
+            });
+        }
+        next(err);
+    }
 });
 
 // PUT /api/payloads/:id - Update an existing payload
-router.put('/:id', validatePayload, (req, res) => {
-    const db = readDatabase();
-    const index = db.payloads.findIndex(p => p.id === req.params.id);
+router.put('/:id', validatePayload, async (req, res, next) => {
+    try {
+        const updateData = {
+            ...req.body,
+            id: req.params.id
+        };
 
-    if (index === -1) {
-        return res.status(404).json({
-            success: false,
-            error: 'Payload not found'
+        const payload = await Payload.findOneAndUpdate(
+            { id: req.params.id },
+            updateData,
+            { new: true, runValidators: true }
+        );
+
+        if (!payload) {
+            return res.status(404).json({
+                success: false,
+                error: 'Payload not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Payload updated successfully',
+            data: payload
         });
+    } catch (err) {
+        next(err);
     }
-
-    db.payloads[index] = {
-        ...db.payloads[index],
-        ...req.body,
-        id: req.params.id
-    };
-
-    writeDatabase(db);
-
-    res.json({
-        success: true,
-        message: 'Payload updated successfully',
-        data: db.payloads[index]
-    });
 });
 
 // DELETE /api/payloads/:id - Delete a payload
-router.delete('/:id', (req, res) => {
-    const db = readDatabase();
-    const index = db.payloads.findIndex(p => p.id === req.params.id);
+router.delete('/:id', async (req, res, next) => {
+    try {
+        const payload = await Payload.findOneAndDelete({ id: req.params.id });
 
-    if (index === -1) {
-        return res.status(404).json({
-            success: false,
-            error: 'Payload not found'
+        if (!payload) {
+            return res.status(404).json({
+                success: false,
+                error: 'Payload not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Payload deleted successfully',
+            data: payload
         });
+    } catch (err) {
+        next(err);
     }
-
-    const deleted = db.payloads.splice(index, 1)[0];
-    writeDatabase(db);
-
-    res.json({
-        success: true,
-        message: 'Payload deleted successfully',
-        data: deleted
-    });
 });
 
 module.exports = router;

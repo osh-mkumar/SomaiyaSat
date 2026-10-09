@@ -12,7 +12,7 @@ import ExternalDataPanel from "./components/ExternalDataPanel";
 import PassSchedulingConsole from "./components/PassSchedulingConsole";
 import OverviewDashboard from "./components/OverviewDashboard";
 
-import { fetchLocalSatellites, fetchLocalPayloads } from "./services/satelliteApi";
+import { fetchLocalSatellites, fetchLocalPayloads, getMissionRouting, getRoutingHistory } from "./services/satelliteApi";
 
 // ==========================================
 // CONSTANTS & INITIAL DATA
@@ -81,8 +81,50 @@ const calculateStatus = (battery, signal, communication, limits) => {
 
 const AiRoutingTab = () => {
     const [activeAIRoutingView, setActiveAIRoutingView] = useState('DECISION QUEUE');
+    const [routingData, setRoutingData] = useState(null);
+    const [historyData, setHistoryData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getMissionRouting()
+            .then(data => {
+                setRoutingData(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.warn('Failed to load mission routing recommendation:', err);
+                setLoading(false);
+            });
+
+        getRoutingHistory()
+            .then(data => {
+                setHistoryData(data);
+            })
+            .catch(err => {
+                console.warn('Failed to load routing history:', err);
+            });
+    }, []);
+
+    const decisionQueue = routingData?.decisionQueue || [
+        { payloadId: 'PAY-001', name: 'TT&C (Housekeeping)', priority: 'Critical', size: '12 KB', status: 'Queued', estTime: 'T-0:15' },
+        { payloadId: 'PAY-002', name: 'SSTV Image Downlink', priority: 'High', size: '420 KB', status: 'Queued', estTime: 'T-1:30' },
+        { payloadId: 'PAY-003', name: 'M17 Digital', priority: 'Normal', size: '85 KB', status: 'Queued', estTime: 'T-3:45' },
+        { payloadId: 'PAY-004', name: 'Codec2 Voice', priority: 'Low', size: '40 KB', status: 'Queued', estTime: 'T-5:00' }
+    ];
+
+    const currentDecision = routingData || {
+        selectedPayload: 'TT&C (Housekeeping)',
+        priority: 'Critical',
+        confidence: 94.2,
+        constraints: { battery: 89, signal: 94, passRemainingMinutes: 12 },
+        reason: 'Optimal battery level and high signal quality. Critical telemetry prioritized.'
+    };
 
     const renderView = () => {
+        if (loading) {
+            return <div style={{ color: '#0df', marginTop: '20px' }}>Loading autonomous routing telemetry...</div>;
+        }
+
         if (activeAIRoutingView === 'DECISION QUEUE') {
             return (
                 <div className="spec-table">
@@ -93,34 +135,17 @@ const AiRoutingTab = () => {
                         <span className="col-title" style={{ width: '100px' }}>Status</span>
                         <span className="col-title" style={{ width: '120px' }}>Est. Time</span>
                     </div>
-                    <div className="table-row">
-                        <span style={{ flex: 1 }}>TT&C (Housekeeping)</span>
-                        <span style={{ width: '100px', color: '#ff5555' }}>Critical</span>
-                        <span style={{ width: '80px' }}>12 KB</span>
-                        <span style={{ width: '100px', color: '#0df' }}>Queued</span>
-                        <span style={{ width: '120px' }}>T-0:15</span>
-                    </div>
-                    <div className="table-row">
-                        <span style={{ flex: 1 }}>SSTV Image Downlink</span>
-                        <span style={{ width: '100px', color: '#ffb86c' }}>High</span>
-                        <span style={{ width: '80px' }}>420 KB</span>
-                        <span style={{ width: '100px', color: '#0df' }}>Queued</span>
-                        <span style={{ width: '120px' }}>T-1:30</span>
-                    </div>
-                    <div className="table-row">
-                        <span style={{ flex: 1 }}>M17 Digital</span>
-                        <span style={{ width: '100px', color: '#8892b0' }}>Medium</span>
-                        <span style={{ width: '80px' }}>85 KB</span>
-                        <span style={{ width: '100px', color: '#0df' }}>Queued</span>
-                        <span style={{ width: '120px' }}>T-3:45</span>
-                    </div>
-                    <div className="table-row">
-                        <span style={{ flex: 1 }}>Codec2 Voice</span>
-                        <span style={{ width: '100px', color: '#8892b0' }}>Medium</span>
-                        <span style={{ width: '80px' }}>40 KB</span>
-                        <span style={{ width: '100px', color: '#0df' }}>Queued</span>
-                        <span style={{ width: '120px' }}>T-5:00</span>
-                    </div>
+                    {decisionQueue.map((item, i) => (
+                        <div key={item.payloadId || i} className="table-row">
+                            <span style={{ flex: 1 }}>{item.name}</span>
+                            <span style={{ width: '100px', color: item.priority === 'Critical' ? '#ff5555' : item.priority === 'High' ? '#ffb86c' : '#50fa7b' }}>
+                                {item.priority}
+                            </span>
+                            <span style={{ width: '80px' }}>{item.size}</span>
+                            <span style={{ width: '100px', color: '#0df' }}>{item.status}</span>
+                            <span style={{ width: '120px' }}>{item.estTime || `T-0:${(i + 1) * 15}`}</span>
+                        </div>
+                    ))}
                 </div>
             );
         }
@@ -132,33 +157,35 @@ const AiRoutingTab = () => {
                     
                     <div style={{ marginBottom: '20px' }}>
                         <div style={{ color: '#8892b0', fontSize: '0.9em', marginBottom: '5px' }}>Selected Payload</div>
-                        <div style={{ fontSize: '1.5em', fontWeight: 'bold' }}>TT&C (Housekeeping)</div>
+                        <div style={{ fontSize: '1.5em', fontWeight: 'bold' }}>{currentDecision.selectedPayload}</div>
                     </div>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
                         <div>
                             <div style={{ color: '#8892b0', fontSize: '0.9em' }}>Battery</div>
-                            <div style={{ color: '#ffb86c' }}>24% (Low)</div>
+                            <div style={{ color: (currentDecision.constraints?.battery || 89) < 30 ? '#ff5555' : '#50fa7b' }}>
+                                {currentDecision.constraints?.battery || 89}%
+                            </div>
                         </div>
                         <div>
                             <div style={{ color: '#8892b0', fontSize: '0.9em' }}>Signal</div>
-                            <div style={{ color: '#50fa7b' }}>94% (Strong)</div>
+                            <div style={{ color: '#50fa7b' }}>{currentDecision.constraints?.signal || 94}%</div>
                         </div>
                         <div>
                             <div style={{ color: '#8892b0', fontSize: '0.9em' }}>Pass Remaining</div>
-                            <div>12m 15s</div>
+                            <div>{currentDecision.constraints?.passRemainingMinutes || 12}m</div>
                         </div>
                         <div>
                             <div style={{ color: '#8892b0', fontSize: '0.9em' }}>Payload Priority</div>
-                            <div style={{ color: '#ff5555' }}>Critical</div>
+                            <div style={{ color: '#ff5555' }}>{currentDecision.priority || 'Critical'}</div>
                         </div>
                     </div>
                     
                     <div style={{ background: '#0a0f18', padding: '15px', borderLeft: '2px solid #ffb86c' }}>
                         <div style={{ color: '#8892b0', fontSize: '0.9em', marginBottom: '5px' }}>Decision Explanation</div>
-                        <p style={{ margin: 0 }}>Battery level is low and the communication window is limited. Critical telemetry has been prioritized. SSTV imaging suspended until battery &gt; 30%.</p>
+                        <p style={{ margin: 0 }}>{currentDecision.reason}</p>
                         <div style={{ marginTop: '10px', fontSize: '0.9em' }}>
-                            <strong style={{ color: '#8892b0' }}>Confidence:</strong> <span style={{ color: '#50fa7b' }}>94.2%</span>
+                            <strong style={{ color: '#8892b0' }}>Confidence:</strong> <span style={{ color: '#50fa7b' }}>{currentDecision.confidence || 94.2}%</span>
                         </div>
                     </div>
                 </div>
@@ -166,6 +193,10 @@ const AiRoutingTab = () => {
         }
 
         if (activeAIRoutingView === 'HISTORY') {
+            const list = historyData && historyData.length > 0 ? historyData : [
+                { timestamp: new Date(), selectedPayload: currentDecision.selectedPayload, constraints: currentDecision.constraints, reason: currentDecision.reason }
+            ];
+
             return (
                 <div className="spec-table">
                     <div className="table-row" style={{ borderBottom: '2px solid #1a2b4c' }}>
@@ -175,20 +206,17 @@ const AiRoutingTab = () => {
                         <span className="col-title" style={{ width: '60px' }}>Sig</span>
                         <span className="col-title" style={{ flex: 2 }}>Reason</span>
                     </div>
-                    <div className="table-row">
-                        <span style={{ width: '100px' }}>14:20:10</span>
-                        <span style={{ flex: 1 }}>SSTV Image</span>
-                        <span style={{ width: '60px', color: '#50fa7b' }}>89%</span>
-                        <span style={{ width: '60px', color: '#50fa7b' }}>92%</span>
-                        <span style={{ flex: 2, fontSize: '0.9em', color: '#8892b0' }}>Optimal conditions for high bandwidth data.</span>
-                    </div>
-                    <div className="table-row">
-                        <span style={{ width: '100px' }}>12:45:05</span>
-                        <span style={{ flex: 1 }}>TT&C</span>
-                        <span style={{ width: '60px', color: '#ffb86c' }}>45%</span>
-                        <span style={{ width: '60px', color: '#ffb86c' }}>65%</span>
-                        <span style={{ flex: 2, fontSize: '0.9em', color: '#8892b0' }}>Routine sync cycle priority.</span>
-                    </div>
+                    {list.map((h, idx) => (
+                        <div key={h._id || idx} className="table-row">
+                            <span style={{ width: '100px' }}>
+                                {h.timestamp ? new Date(h.timestamp).toLocaleTimeString() : '14:20:10'}
+                            </span>
+                            <span style={{ flex: 1 }}>{h.selectedPayload}</span>
+                            <span style={{ width: '60px', color: '#50fa7b' }}>{h.constraints?.battery || 89}%</span>
+                            <span style={{ width: '60px', color: '#50fa7b' }}>{h.constraints?.signal || 94}%</span>
+                            <span style={{ flex: 2, fontSize: '0.9em', color: '#8892b0' }}>{h.reason}</span>
+                        </div>
+                    ))}
                 </div>
             );
         }
@@ -211,6 +239,7 @@ const AiRoutingTab = () => {
         </section>
     );
 };
+
 
 // ==========================================
 // MAIN COMPONENT

@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 AI_GUIDE.md
+
+# Environment variables
+.env
+.env.*
+!.env.example

@@ -128,11 +128,28 @@ export const updateConfig = async (configData) => {
 };
 
 // ==========================================
+// MISSION INTELLIGENCE & ROUTING API
+// ==========================================
+
+export const getMissionRouting = async () => {
+    const res = await fetch(`${LOCAL_API_BASE}/routing`);
+    if (!res.ok) throw new Error('Failed to fetch mission routing recommendation');
+    const json = await res.json();
+    return json.data;
+};
+
+export const getRoutingHistory = async () => {
+    const res = await fetch(`${LOCAL_API_BASE}/routing/history`);
+    if (!res.ok) throw new Error('Failed to fetch routing history');
+    const json = await res.json();
+    return json.data || [];
+};
+
+// ==========================================
 // EXTERNAL PUBLIC API (ISS TRACKING)
 // ==========================================
 
 export const fetchExternalISS = () => {
-    // Pull real-time live data from the public ISS API endpoint instead of the local server.
     return fetch('https://api.wheretheiss.at/v1/satellites/25544')
         .then(response => {
             if (!response.ok) {
@@ -145,7 +162,6 @@ export const fetchExternalISS = () => {
 export const fetchISSPositions = async () => {
     const now = Math.floor(Date.now() / 1000);
     const timestamps = [now, now + 60, now + 120].join(",");
-    // Wait for the HTTP request to finish completely before returning the position data.
     const response = await axios.get(
         `https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps=${timestamps}&units=kilometers`
     );
